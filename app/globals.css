@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-markot), ui-sans-serif, system-ui, sans-serif;
+
+  --color-uplight-green: #00e297;
+  --color-uplight-blue: #0047ff;
+  --color-uplight-navy: #000f9f;
+  --color-uplight-black: #0a0a0a;
+
+  --color-surface: #f5f6f8;
+  --color-surface-elevated: #ffffff;
+  --color-border: #ededed;
+  --color-sidebar-border: #ededed;
+  --color-muted: #6b7280;
+}
+
+@layer base {
+  html {
+    font-size: 17px;
+  }
+
+  body {
+    @apply bg-surface text-uplight-black antialiased;
+  }
+}
