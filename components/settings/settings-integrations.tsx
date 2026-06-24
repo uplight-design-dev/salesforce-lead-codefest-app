@@ -89,12 +89,9 @@ export function SettingsIntegrations({
                 {salesforceRedirectUri}
               </code>
               <p className="mt-2 text-xs text-muted">
-                Open the app at{" "}
-                <code className="rounded bg-surface px-1 py-0.5">
-                  {salesforceRedirectUri.replace("/api/salesforce/callback", "")}
-                </code>{" "}
-                — do not use <code className="rounded bg-surface px-1 py-0.5">127.0.0.1</code> or
-                a network IP unless you also register that callback URL in Salesforce.
+                Register this URL in Salesforce, then set matching values in Vercel env vars:{" "}
+                <code className="rounded bg-surface px-1 py-0.5">NEXT_PUBLIC_APP_URL</code> and{" "}
+                <code className="rounded bg-surface px-1 py-0.5">SALESFORCE_REDIRECT_URI</code>.
               </p>
             </div>
           </Card>

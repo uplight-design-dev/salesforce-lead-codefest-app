@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { exchangeCodeForTokens } from "@/lib/salesforce/client";
+import { getAppUrl } from "@/lib/salesforce/config";
 import { syncLeads } from "@/lib/salesforce/sync-leads";
 import { OAUTH_STATE_COOKIE } from "@/lib/salesforce/oauth";
 
@@ -18,7 +19,7 @@ const SETTINGS_PATH = "/settings";
  * 6. Redirect back to Settings with a success or error message.
  */
 export async function GET(request: NextRequest) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? request.nextUrl.origin;
+  const appUrl = getAppUrl();
   const redirectWith = (params: Record<string, string>) => {
     const url = new URL(SETTINGS_PATH, appUrl);
     for (const [key, value] of Object.entries(params)) {

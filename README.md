@@ -40,12 +40,37 @@ https://your-app.vercel.app/api/salesforce/callback
 
 ## Deploy to Vercel (demo)
 
-1. Push this repo to GitHub.
-2. Import the repo at [vercel.com/new](https://vercel.com/new).
-3. Add the environment variables from `.env.example` in the Vercel project settings.
-4. Set `NEXT_PUBLIC_APP_URL` and `SALESFORCE_REDIRECT_URI` to your Vercel deployment URL.
-5. Add the production callback URL to your Salesforce Connected App.
-6. Deploy.
+Live demo: [salesforce-lead-codefest-app.vercel.app](https://salesforce-lead-codefest-app.vercel.app)
+
+### 1. Vercel environment variables
+
+In your Vercel project → **Settings → Environment Variables**, set:
+
+| Variable | Production value |
+|----------|------------------|
+| `NEXT_PUBLIC_APP_URL` | `https://salesforce-lead-codefest-app.vercel.app` |
+| `SALESFORCE_CLIENT_ID` | Your Connected App Consumer Key |
+| `SALESFORCE_CLIENT_SECRET` | Your Connected App Consumer Secret |
+| `SALESFORCE_REDIRECT_URI` | `https://salesforce-lead-codefest-app.vercel.app/api/salesforce/callback` |
+| `SALESFORCE_LOGIN_URL` | `https://login.salesforce.com` |
+| `SALESFORCE_ENGAGED_CONTACTS_REPORT_ID` | `00OV1000002MCKjMAO` |
+
+Redeploy after saving env vars.
+
+### 2. Salesforce Connected App callback URLs
+
+In Salesforce → **Setup → App Manager → [Your Connected App] → Edit → OAuth Settings**, add **both** callback URLs (one per line):
+
+```
+https://salesforce-lead-codefest-app.vercel.app/api/salesforce/callback
+http://localhost:3000/api/salesforce/callback
+```
+
+Save and wait a few minutes for Salesforce to propagate changes.
+
+### 3. Connect
+
+Open [Settings](https://salesforce-lead-codefest-app.vercel.app/settings) on the live app and click **Connect Salesforce**.
 
 The dashboard renders with mock data when Salesforce is not connected. Live report data requires OAuth plus valid env vars.
 

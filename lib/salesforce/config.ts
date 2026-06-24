@@ -24,13 +24,16 @@ function requireEnv(name: string): string {
   return value;
 }
 
+/** Public app URL — used for OAuth redirects back to Settings. */
+export function getAppUrl(): string {
+  return (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+}
+
 /** OAuth callback URL sent to Salesforce — must match a Connected App callback URL exactly. */
 export function getSalesforceRedirectUri(): string {
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(
-    /\/$/,
-    ""
+  return (
+    process.env.SALESFORCE_REDIRECT_URI ?? `${getAppUrl()}/api/salesforce/callback`
   );
-  return process.env.SALESFORCE_REDIRECT_URI ?? `${appUrl}/api/salesforce/callback`;
 }
 
 /** Returns validated Salesforce OAuth config. Throws if any variable is missing. */

@@ -1,10 +1,14 @@
 /**
- * Secure server-side token storage for Salesforce OAuth tokens.
+ * Server-side token storage for Salesforce OAuth tokens.
  *
- * Tokens must never be sent to the browser or stored in localStorage.
- * In production, persist encrypted tokens in Supabase (or another server-side store)
- * keyed by the authenticated app user / org.
+ * Tokens are stored in an httpOnly cookie so OAuth survives Vercel serverless
+ * cold starts. In a multi-tenant production app, move this to Supabase with
+ * per-user encryption.
  */
+
+import { cookies } from "next/headers";
+
+export const SALESFORCE_TOKEN_COOKIE = "sf_connection";
 
 export type SalesforceTokens = {
   accessToken: string;
@@ -15,38 +19,35 @@ export type SalesforceTokens = {
   expiresIn: number;
 };
 
-// In-memory placeholder for local development before Supabase wiring.
-// TODO: Replace with Supabase `salesforce_connections` table:
-//   - Encrypt access_token and refresh_token at rest (e.g. pgcrypto or app-level AES)
-//   - Associate rows with the authenticated user / tenant
-//   - Add RLS policies so users can only read their own connection
-let storedTokens: SalesforceTokens | null = null;
-
 /** Persists tokens after a successful OAuth callback. Server-side only. */
 export async function saveTokens(tokens: SalesforceTokens): Promise<void> {
-  // TODO: Upsert into Supabase instead of in-memory storage.
-  // Example:
-  //   await supabase.from('salesforce_connections').upsert({
-  //     user_id: session.user.id,
-  //     access_token: encrypt(tokens.accessToken),
-  //     refresh_token: encrypt(tokens.refreshToken),
-  //     instance_url: tokens.instanceUrl,
-  //     issued_at: new Date(tokens.issuedAt).toISOString(),
-  //     expires_in: tokens.expiresIn,
-  //   });
-  storedTokens = tokens;
+  const cookieStore = await cookies();
+  cookieStore.set(SALESFORCE_TOKEN_COOKIE, JSON.stringify(tokens), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
 }
 
 /** Returns stored tokens if a Salesforce connection exists. */
 export async function getTokens(): Promise<SalesforceTokens | null> {
-  // TODO: Load from Supabase for the current authenticated user.
-  return storedTokens;
+  const cookieStore = await cookies();
+  const raw = cookieStore.get(SALESFORCE_TOKEN_COOKIE)?.value;
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw) as SalesforceTokens;
+  } catch {
+    return null;
+  }
 }
 
 /** Removes stored tokens on disconnect or auth failure. */
 export async function clearTokens(): Promise<void> {
-  // TODO: Delete the user's row from Supabase `salesforce_connections`.
-  storedTokens = null;
+  const cookieStore = await cookies();
+  cookieStore.delete(SALESFORCE_TOKEN_COOKIE);
 }
 
 /** Returns true when valid (non-expired) tokens are available. */
