@@ -93,7 +93,7 @@ export function SettingsIntegrations({
               <p className="mt-2 text-xs text-muted">
                 OAuth uses your org login URL:{" "}
                 <code className="rounded bg-surface px-1 py-0.5 break-all">{salesforceLoginUrl}</code>
-                . External Client Apps require My Domain (not login.salesforce.com).
+                . External Client Apps may require org My Domain instead of test.salesforce.com.
               </p>
             </div>
           </Card>

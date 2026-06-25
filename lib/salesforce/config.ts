@@ -36,12 +36,10 @@ export function getSalesforceRedirectUri(): string {
   );
 }
 
-/** Salesforce authorization/token host — use org My Domain for External Client Apps. */
+/** Salesforce authorization/token host (base URL only — path is appended automatically). */
 export function getSalesforceLoginUrl(): string {
-  return (process.env.SALESFORCE_LOGIN_URL ?? "https://uplight--partial2.sandbox.my.salesforce.com").replace(
-    /\/$/,
-    ""
-  );
+  const raw = process.env.SALESFORCE_LOGIN_URL ?? "https://test.salesforce.com";
+  return raw.replace(/\/services\/oauth2\/authorize\/?$/, "").replace(/\/$/, "");
 }
 
 /** Returns validated Salesforce OAuth config. Throws if any variable is missing. */
