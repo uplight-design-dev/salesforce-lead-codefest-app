@@ -52,6 +52,7 @@ export function buildAuthorizeUrl(params: {
   redirectUri: string;
   loginUrl: string;
   state: string;
+  codeChallenge: string;
 }): string {
   const url = new URL(`${params.loginUrl}/services/oauth2/authorize`);
   url.searchParams.set("response_type", "code");
@@ -60,5 +61,8 @@ export function buildAuthorizeUrl(params: {
   // Request API access and offline refresh so we can sync data on a schedule.
   url.searchParams.set("scope", "api refresh_token offline_access");
   url.searchParams.set("state", params.state);
+  // PKCE — required when "Require Proof Key for Code Exchange" is enabled on the Connected App.
+  url.searchParams.set("code_challenge", params.codeChallenge);
+  url.searchParams.set("code_challenge_method", "S256");
   return url.toString();
 }

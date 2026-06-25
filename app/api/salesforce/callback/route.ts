@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { exchangeCodeForTokens } from "@/lib/salesforce/client";
 import { getAppUrl } from "@/lib/salesforce/config";
 import { syncLeads } from "@/lib/salesforce/sync-leads";
-import { OAUTH_STATE_COOKIE } from "@/lib/salesforce/oauth";
+import { OAUTH_PKCE_COOKIE, OAUTH_STATE_COOKIE } from "@/lib/salesforce/oauth";
 
 const SETTINGS_PATH = "/settings";
 
@@ -50,16 +50,23 @@ export async function GET(request: NextRequest) {
   // Verify CSRF state against the httpOnly cookie from /connect.
   const cookieStore = await cookies();
   const storedState = cookieStore.get(OAUTH_STATE_COOKIE)?.value;
+  const codeVerifier = cookieStore.get(OAUTH_PKCE_COOKIE)?.value;
 
   cookieStore.delete(OAUTH_STATE_COOKIE);
+  cookieStore.delete(OAUTH_PKCE_COOKIE);
 
   if (!storedState || storedState !== state) {
     return redirectWith({ error: "Invalid OAuth state. Please try connecting again." });
   }
 
+  if (!codeVerifier) {
+    return redirectWith({
+      error: "Missing PKCE verifier. Please try connecting again.",
+    });
+  }
+
   try {
-    // Exchange code for tokens — client secret is used only in this server-side call.
-    await exchangeCodeForTokens(code);
+    await exchangeCodeForTokens(code, codeVerifier);
 
     // Initial sync: fetch leads and log them. TODO: persist to Supabase.
     try {

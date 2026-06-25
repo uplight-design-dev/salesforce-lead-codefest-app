@@ -1,40 +1,44 @@
 import { randomBytes } from "crypto";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { buildAuthorizeUrl, getSalesforceConfig } from "@/lib/salesforce/config";
-import { OAUTH_STATE_COOKIE } from "@/lib/salesforce/oauth";
+import { buildAuthorizeUrl, getAppUrl, getSalesforceConfig } from "@/lib/salesforce/config";
+import { OAUTH_PKCE_COOKIE, OAUTH_STATE_COOKIE } from "@/lib/salesforce/oauth";
+import { generateCodeChallenge, generateCodeVerifier } from "@/lib/salesforce/pkce";
+
+const OAUTH_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+  maxAge: 60 * 10,
+  path: "/",
+};
 
 /**
  * GET /api/salesforce/connect
  *
  * Step 1 of the OAuth flow (server-side only):
  * 1. Read Salesforce config from environment variables (client secret stays here).
- * 2. Generate a CSRF state token and store it in an httpOnly cookie.
+ * 2. Generate CSRF state + PKCE code verifier/challenge.
  * 3. Redirect the browser to Salesforce's authorization endpoint.
- *
- * The browser never sees the client secret — only the public client_id is sent to Salesforce.
  */
 export async function GET() {
   try {
     const config = getSalesforceConfig();
 
-    // CSRF protection: random state verified in the callback route.
     const state = randomBytes(32).toString("hex");
-    const cookieStore = await cookies();
+    const codeVerifier = generateCodeVerifier();
+    const codeChallenge = generateCodeChallenge(codeVerifier);
 
-    cookieStore.set(OAUTH_STATE_COOKIE, state, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 10, // 10 minutes — enough time to complete OAuth
-      path: "/",
-    });
+    const cookieStore = await cookies();
+    cookieStore.set(OAUTH_STATE_COOKIE, state, OAUTH_COOKIE_OPTIONS);
+    cookieStore.set(OAUTH_PKCE_COOKIE, codeVerifier, OAUTH_COOKIE_OPTIONS);
 
     const authorizeUrl = buildAuthorizeUrl({
       clientId: config.clientId,
       redirectUri: config.redirectUri,
       loginUrl: config.loginUrl,
       state,
+      codeChallenge,
     });
 
     return NextResponse.redirect(authorizeUrl);
@@ -43,7 +47,7 @@ export async function GET() {
       error instanceof Error ? error.message : "Failed to start Salesforce OAuth";
     console.error("[salesforce/connect]", message);
     return NextResponse.redirect(
-      new URL(`/settings?error=${encodeURIComponent(message)}`, process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000")
+      new URL(`/settings?error=${encodeURIComponent(message)}`, getAppUrl())
     );
   }
 }

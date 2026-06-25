@@ -33,7 +33,8 @@ type SalesforceClientOptions = {
  * Called from the callback route after the user approves access in Salesforce.
  */
 export async function exchangeCodeForTokens(
-  code: string
+  code: string,
+  codeVerifier: string
 ): Promise<SalesforceTokens> {
   const config = getSalesforceConfig();
 
@@ -43,6 +44,7 @@ export async function exchangeCodeForTokens(
     client_id: config.clientId,
     client_secret: config.clientSecret,
     redirect_uri: config.redirectUri,
+    code_verifier: codeVerifier,
   });
 
   const response = await fetch(
