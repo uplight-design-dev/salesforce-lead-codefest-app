@@ -1,7 +1,7 @@
 import { hasActiveConnection } from "@/lib/salesforce/token-store";
 import { isGoogleAnalyticsConfigured } from "@/lib/google-analytics/config";
 import { getReportConfig } from "@/lib/salesforce/reports";
-import { getSalesforceRedirectUri } from "@/lib/salesforce/config";
+import { getSalesforceLoginUrl, getSalesforceRedirectUri } from "@/lib/salesforce/config";
 import { SettingsIntegrations } from "@/components/settings/settings-integrations";
 import { Header } from "@/components/layout/header";
 import { PageContent } from "@/components/layout/page-content";
@@ -30,6 +30,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           googleAnalyticsConfigured={isGoogleAnalyticsConfigured()}
           salesforceReportsConfigured={Boolean(getReportConfig())}
           salesforceRedirectUri={getSalesforceRedirectUri()}
+          salesforceLoginUrl={getSalesforceLoginUrl()}
           connected={params.connected === "true"}
           error={params.error ? decodeURIComponent(params.error) : undefined}
           warning={params.warning}

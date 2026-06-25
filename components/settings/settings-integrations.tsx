@@ -6,6 +6,7 @@ type SettingsIntegrationsProps = {
   googleAnalyticsConfigured: boolean;
   salesforceReportsConfigured: boolean;
   salesforceRedirectUri: string;
+  salesforceLoginUrl: string;
   connected?: boolean;
   error?: string;
   warning?: string;
@@ -16,6 +17,7 @@ export function SettingsIntegrations({
   googleAnalyticsConfigured,
   salesforceReportsConfigured,
   salesforceRedirectUri,
+  salesforceLoginUrl,
   connected,
   error,
   warning,
@@ -89,9 +91,9 @@ export function SettingsIntegrations({
                 {salesforceRedirectUri}
               </code>
               <p className="mt-2 text-xs text-muted">
-                Register this URL in Salesforce, then set matching values in Vercel env vars:{" "}
-                <code className="rounded bg-surface px-1 py-0.5">NEXT_PUBLIC_APP_URL</code> and{" "}
-                <code className="rounded bg-surface px-1 py-0.5">SALESFORCE_REDIRECT_URI</code>.
+                OAuth uses your org login URL:{" "}
+                <code className="rounded bg-surface px-1 py-0.5 break-all">{salesforceLoginUrl}</code>
+                . External Client Apps require My Domain (not login.salesforce.com).
               </p>
             </div>
           </Card>

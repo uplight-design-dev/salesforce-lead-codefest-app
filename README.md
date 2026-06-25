@@ -23,7 +23,7 @@ Copy `.env.example` to `.env.local` and configure:
 | `SALESFORCE_CLIENT_ID` | Connected App Consumer Key |
 | `SALESFORCE_CLIENT_SECRET` | Connected App Consumer Secret |
 | `SALESFORCE_REDIRECT_URI` | OAuth callback — must match Connected App exactly |
-| `SALESFORCE_LOGIN_URL` | `https://login.salesforce.com` or your My Domain URL |
+| `SALESFORCE_LOGIN_URL` | Org My Domain, e.g. `https://uplight--partial2.sandbox.my.salesforce.com` |
 | `SALESFORCE_ENGAGED_CONTACTS_REPORT_ID` | Report ID for [SDR] 2026-Engaged Contacts |
 
 **Salesforce OAuth:** Add your callback URL to the Connected App under **OAuth Settings → Callback URL**. For local dev:
@@ -52,7 +52,7 @@ In your Vercel project → **Settings → Environment Variables**, set:
 | `SALESFORCE_CLIENT_ID` | Your Connected App Consumer Key |
 | `SALESFORCE_CLIENT_SECRET` | Your Connected App Consumer Secret |
 | `SALESFORCE_REDIRECT_URI` | `https://salesforce-lead-codefest-app.vercel.app/api/salesforce/callback` |
-| `SALESFORCE_LOGIN_URL` | `https://login.salesforce.com` |
+| `SALESFORCE_LOGIN_URL` | `https://uplight--partial2.sandbox.my.salesforce.com` |
 | `SALESFORCE_ENGAGED_CONTACTS_REPORT_ID` | `00OV1000002MCKjMAO` |
 
 Redeploy after saving env vars.
