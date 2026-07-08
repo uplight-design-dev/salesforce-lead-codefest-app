@@ -5,16 +5,22 @@ import { TopCampaigns } from "@/components/dashboard/top-campaigns";
 import { PageContent } from "@/components/layout/page-content";
 import { StatCard } from "@/components/ui/stat-card";
 import {
-  intelligencePulse,
-  overviewKpis,
-  pipelineStages,
-  pipelineValue,
-  topCampaigns,
-} from "@/lib/data/mock-overview";
+  getIntelligencePulse,
+  getOverviewKpis,
+  getPipelineStages,
+  getPipelineValue,
+  getTopCampaigns,
+} from "@/lib/data/dashboard-data";
 import { getLeads } from "@/lib/salesforce/reports";
 
 export default async function OverviewPage() {
   const leads = await getLeads();
+  const overviewKpis = getOverviewKpis();
+  const pipelineStages = getPipelineStages();
+  const pipelineValue = getPipelineValue();
+  const topCampaigns = getTopCampaigns();
+  const intelligencePulse = getIntelligencePulse();
+
   return (
     <PageContent className="space-y-6">
       <div className="grid gap-4 xl:grid-cols-5">

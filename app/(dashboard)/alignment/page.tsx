@@ -2,17 +2,12 @@ import { Header } from "@/components/layout/header";
 import { PageContent } from "@/components/layout/page-content";
 import { Card } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
-import { mockAlignment } from "@/lib/data/mock-pipeline";
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
+import { getAlignmentMetrics, hasCsvLeadData } from "@/lib/data/dashboard-data";
 
 export default function AlignmentPage() {
+  const alignment = getAlignmentMetrics();
+  const fromCsv = hasCsvLeadData();
+
   return (
     <>
       <Header
@@ -23,19 +18,27 @@ export default function AlignmentPage() {
       <PageContent className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard
-            label="Leads Accepted by Sales"
-            value={mockAlignment.leadsAcceptedBySales}
-            subtext="MQLs → SQL conversion"
+            label="Leads Assigned to SDRs"
+            value={alignment.leadsAcceptedBySales}
+            subtext="From lead tracker"
             accent="blue"
           />
           <StatCard
-            label="Marketing Pipeline"
-            value={formatCurrency(mockAlignment.marketingGeneratedPipeline)}
+            label={fromCsv ? "Engagement Touchpoints" : "Marketing Pipeline"}
+            value={
+              fromCsv
+                ? alignment.marketingGeneratedPipeline.toLocaleString()
+                : `$${(alignment.marketingGeneratedPipeline / 1_000_000).toFixed(1)}M`
+            }
             accent="green"
           />
           <StatCard
-            label="Marketing Revenue"
-            value={formatCurrency(mockAlignment.marketingGeneratedRevenue)}
+            label={fromCsv ? "Closed Won Deals" : "Marketing Revenue"}
+            value={
+              fromCsv
+                ? alignment.marketingGeneratedRevenue
+                : `$${(alignment.marketingGeneratedRevenue / 1_000).toFixed(0)}k`
+            }
             accent="navy"
           />
         </div>

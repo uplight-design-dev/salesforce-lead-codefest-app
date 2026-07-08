@@ -38,7 +38,9 @@ export function getSalesforceRedirectUri(): string {
 
 /** Salesforce authorization/token host (base URL only — path is appended automatically). */
 export function getSalesforceLoginUrl(): string {
-  const raw = process.env.SALESFORCE_LOGIN_URL ?? "https://test.salesforce.com";
+  const raw =
+    process.env.SALESFORCE_LOGIN_URL ??
+    "https://uplight--partial2.sandbox.my.salesforce.com";
   return raw.replace(/\/services\/oauth2\/authorize\/?$/, "").replace(/\/$/, "");
 }
 

@@ -6,6 +6,8 @@
  */
 
 import { getSalesforceClient, type SalesforceReportResponse } from "./client";
+import { getCsvLeads } from "@/lib/data/csv-leads";
+import { getCsvPipelineMetrics } from "@/lib/data/csv-metrics";
 import { mockLeads } from "@/lib/data/mock-leads";
 import { mockPipeline } from "@/lib/data/mock-pipeline";
 import type { Lead, LeadStatus, Momentum, PipelineMetrics } from "@/lib/types/lead";
@@ -211,28 +213,38 @@ async function fetchEngagedContactsReport(): Promise<{
   };
 }
 
+function getFallbackLeads(): Lead[] {
+  const csvLeads = getCsvLeads();
+  if (csvLeads.length > 0) return csvLeads;
+
+  console.log(
+    "[salesforce/reports] Using mock leads — CSV not found and Salesforce is not connected."
+  );
+  return mockLeads;
+}
+
 /**
  * Returns leads from [SDR] 2026-Engaged Contacts when Salesforce is connected.
- * Falls back to mock data when OAuth or report ID is missing.
+ * Falls back to the SDR Lead Tracker CSV, then mock data.
  */
 export async function getLeads(): Promise<Lead[]> {
   try {
     const result = await fetchEngagedContactsReport();
     if (!result) {
       console.log(
-        "[salesforce/reports] Using mock leads — connect Salesforce and set SALESFORCE_ENGAGED_CONTACTS_REPORT_ID."
+        "[salesforce/reports] Salesforce not connected — using SDR Lead Tracker CSV."
       );
-      return mockLeads;
+      return getFallbackLeads();
     }
 
     console.log(
       `[salesforce/reports] Loaded ${result.leads.length} rows from "${result.reportName}" (${result.reportId}).`
     );
 
-    return result.leads.length > 0 ? result.leads : mockLeads;
+    return result.leads.length > 0 ? result.leads : getFallbackLeads();
   } catch (error) {
     console.error("[salesforce/reports] Failed to fetch engaged contacts report:", error);
-    return mockLeads;
+    return getFallbackLeads();
   }
 }
 
@@ -249,6 +261,12 @@ export async function fetchPipelineFromReport(): Promise<PipelineMetrics> {
   const client = await getSalesforceClient();
 
   if (!client || !reportConfig?.pipelineReportId) {
+    const csvPipeline = getCsvPipelineMetrics();
+    if (getCsvLeads().length > 0) {
+      console.log("[salesforce/reports] Using pipeline metrics from SDR Lead Tracker CSV.");
+      return csvPipeline;
+    }
+
     console.log(
       "[salesforce/reports] Using mock pipeline — connect Salesforce and set SALESFORCE_PIPELINE_REPORT_ID."
     );

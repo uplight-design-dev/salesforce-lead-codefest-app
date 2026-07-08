@@ -10,7 +10,7 @@ export default async function LeadsPage() {
     <>
       <Header
         title="Leads"
-        description="Engaged contacts synced from the Salesforce report [SDR] 2026-Engaged Contacts."
+        description="Engaged contacts from the SDR Lead Tracker — live Salesforce sync when connected."
       />
       <PageContent>
         <LeadTable leads={leads} />

@@ -18,13 +18,13 @@ const SUGGESTED_PROMPTS = [
 
 const MOCK_RESPONSES: Record<string, string> = {
   default:
-    "12 leads meet the criteria. Top lead: Microsoft Energy Team — engagement score 95, attended webinar yesterday, estimated conversion probability 87%.",
+    "30 high-intent leads in the tracker (score 85+). Top lead: Alvis Wright at Alabama Power Co — engagement score 99 with 5 touchpoints.",
   "show me leads most likely to convert this week.":
-    "12 leads meet the criteria. Top lead: **Microsoft Energy Team** (John Smith) — engagement score 95, attended webinar yesterday, estimated conversion probability 87%. Recommend Shivani follow up within 24 hours.",
+    "30 leads score 85+. Top lead: **Alvis Wright** (Alabama Power Co) — score 99, 5 campaign touchpoints, Platinum-tier account. 56 leads show accelerating momentum.",
   "which leads are at risk of going cold?":
-    "3 leads are at risk: Alex Rivera (National Grid) — no engagement in 14 days. Sarah Chen (Duke Energy) — stalled at proposal stage. Recommend re-engagement campaigns for all three.",
+    "26 leads are at risk and 36 are stalled in the tracker. Prioritize Yellow-health accounts and contacts with no recent multi-touch engagement.",
   "summarize pipeline health for this month.":
-    "Pipeline: 350 total leads → 120 MQLs → 75 SQLs → 30 opportunities → 8 closed won (2.3% conversion). MQL→SQL rate is healthy at 62.5%. Opportunity velocity has slowed — 4 deals stalled >7 days.",
+    "Pipeline: 118 total leads → 6 MQLs/nurturing → 0 SQLs → 0 opportunities → 1 closed won (0.8% conversion). 144 engagement touchpoints across 62 utility accounts.",
 };
 
 type CopilotChatProps = {

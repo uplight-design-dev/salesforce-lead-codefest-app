@@ -2,18 +2,20 @@ import { Header } from "@/components/layout/header";
 import { PageContent } from "@/components/layout/page-content";
 import { Card } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
-import { mockTeamMetrics } from "@/lib/data/mock-pipeline";
+import { getTeamMetrics } from "@/lib/data/dashboard-data";
 
 export default function TeamPage() {
+  const teamMetrics = getTeamMetrics();
+
   const totals = {
     followUp: Math.round(
-      mockTeamMetrics.reduce((sum, m) => sum + m.followUpRate, 0) /
-        mockTeamMetrics.length
+      teamMetrics.reduce((sum, member) => sum + member.followUpRate, 0) /
+        teamMetrics.length
     ),
-    meetings: mockTeamMetrics.reduce((sum, m) => sum + m.meetingsBooked, 0),
+    meetings: teamMetrics.reduce((sum, member) => sum + member.meetingsBooked, 0),
     conversion: (
-      mockTeamMetrics.reduce((sum, m) => sum + m.conversionRate, 0) /
-      mockTeamMetrics.length
+      teamMetrics.reduce((sum, member) => sum + member.conversionRate, 0) /
+      teamMetrics.length
     ).toFixed(1),
   };
 
@@ -51,18 +53,18 @@ export default function TeamPage() {
                   <th className="px-5 py-3 font-medium">SDR</th>
                   <th className="px-5 py-3 font-medium">Follow-up Rate</th>
                   <th className="px-5 py-3 font-medium">Meetings Booked</th>
-                  <th className="px-5 py-3 font-medium">Avg Response Time</th>
+                  <th className="px-5 py-3 font-medium">Avg Touchpoints</th>
                   <th className="px-5 py-3 font-medium">Conversion Rate</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {mockTeamMetrics.map((member) => (
+                {teamMetrics.map((member) => (
                   <tr key={member.id}>
                     <td className="px-5 py-4 font-medium">{member.name}</td>
                     <td className="px-5 py-4 tabular-nums">{member.followUpRate}%</td>
                     <td className="px-5 py-4 tabular-nums">{member.meetingsBooked}</td>
                     <td className="px-5 py-4 tabular-nums">
-                      {member.avgResponseTimeHours}h
+                      {member.avgResponseTimeHours}
                     </td>
                     <td className="px-5 py-4 tabular-nums font-semibold text-uplight-green">
                       {member.conversionRate}%

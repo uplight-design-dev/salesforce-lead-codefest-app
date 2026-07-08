@@ -1,5 +1,5 @@
 import { Card, CardTitle } from "@/components/ui/card";
-import type { PipelineStageMetric } from "@/lib/data/mock-overview";
+import type { PipelineStageMetric } from "@/lib/data/csv-metrics";
 
 type PipelineOverviewProps = {
   stages: PipelineStageMetric[];

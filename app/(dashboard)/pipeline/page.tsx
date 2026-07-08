@@ -3,7 +3,7 @@ import { Header } from "@/components/layout/header";
 import { PageContent } from "@/components/layout/page-content";
 import { Card } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
-import { funnelStages } from "@/lib/data/mock-pipeline";
+import { getFunnelStages, getPipelineMetrics } from "@/lib/data/dashboard-data";
 import { fetchPipelineFromReport } from "@/lib/salesforce/reports";
 
 const STAGE_DESCRIPTIONS = [
@@ -16,6 +16,7 @@ const STAGE_DESCRIPTIONS = [
 
 export default async function PipelinePage() {
   const pipeline = await fetchPipelineFromReport();
+  const funnelStages = getFunnelStages();
 
   const metrics = [
     { label: "Total Leads", value: pipeline.totalLeads, stage: funnelStages[0] },

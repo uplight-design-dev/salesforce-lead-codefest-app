@@ -15,6 +15,10 @@ type DealMomentumProps = {
 };
 
 export function DealMomentum({ leads }: DealMomentumProps) {
+  const topLeads = [...leads]
+    .sort((a, b) => b.engagementScore - a.engagementScore)
+    .slice(0, 10);
+
   return (
     <Card>
       <CardHeader>
@@ -40,7 +44,7 @@ export function DealMomentum({ leads }: DealMomentumProps) {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {leads.map((lead) => (
+            {topLeads.map((lead) => (
               <tr key={lead.id} className="group">
                 <td className="px-0 py-4 pr-6 text-left align-middle">
                   <Link
