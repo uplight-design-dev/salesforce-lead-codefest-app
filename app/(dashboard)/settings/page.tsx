@@ -16,6 +16,8 @@ type SettingsPageProps = {
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
   const params = await searchParams;
+  const oauthSucceeded = params.connected === "true";
+  const salesforceConnected = oauthSucceeded || (await hasActiveConnection());
 
   return (
     <>
@@ -26,12 +28,12 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
       <PageContent>
         <SettingsIntegrations
-          salesforceConnected={await hasActiveConnection()}
+          salesforceConnected={salesforceConnected}
           googleAnalyticsConfigured={isGoogleAnalyticsConfigured()}
           salesforceReportsConfigured={Boolean(getReportConfig())}
           salesforceRedirectUri={getSalesforceRedirectUri()}
           salesforceLoginUrl={getSalesforceLoginUrl()}
-          connected={params.connected === "true"}
+          connected={oauthSucceeded}
           error={params.error ? decodeURIComponent(params.error) : undefined}
           warning={params.warning}
         />

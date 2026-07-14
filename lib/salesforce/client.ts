@@ -6,14 +6,20 @@
  */
 
 import { getSalesforceConfig } from "./config";
-import { getTokens, saveTokens, type SalesforceTokens } from "./token-store";
+import {
+  DEFAULT_ACCESS_TOKEN_TTL_SECONDS,
+  getTokens,
+  saveTokens,
+  type SalesforceTokens,
+} from "./token-store";
 
 export type TokenResponse = {
   access_token: string;
-  refresh_token: string;
+  refresh_token?: string;
   instance_url: string;
   issued_at: string;
-  expires_in: number;
+  /** Omitted by Salesforce; present in some other OAuth providers. */
+  expires_in?: number;
   token_type: string;
 };
 
@@ -67,10 +73,14 @@ export async function exchangeCodeForTokens(
 
   const tokens: SalesforceTokens = {
     accessToken: data.access_token,
-    refreshToken: data.refresh_token,
+    refreshToken: data.refresh_token ?? "",
     instanceUrl: data.instance_url,
-    issuedAt: Number(data.issued_at),
-    expiresIn: data.expires_in,
+    issuedAt: Number(data.issued_at) || Date.now(),
+    // Salesforce does not return expires_in — default to a typical session TTL.
+    expiresIn:
+      typeof data.expires_in === "number" && data.expires_in > 0
+        ? data.expires_in
+        : DEFAULT_ACCESS_TOKEN_TTL_SECONDS,
   };
 
   await saveTokens(tokens);
@@ -118,8 +128,11 @@ export async function refreshAccessToken(): Promise<SalesforceTokens> {
     accessToken: data.access_token,
     refreshToken: data.refresh_token ?? existing.refreshToken,
     instanceUrl: data.instance_url ?? existing.instanceUrl,
-    issuedAt: Number(data.issued_at),
-    expiresIn: data.expires_in,
+    issuedAt: Number(data.issued_at) || Date.now(),
+    expiresIn:
+      typeof data.expires_in === "number" && data.expires_in > 0
+        ? data.expires_in
+        : DEFAULT_ACCESS_TOKEN_TTL_SECONDS,
   };
 
   await saveTokens(tokens);

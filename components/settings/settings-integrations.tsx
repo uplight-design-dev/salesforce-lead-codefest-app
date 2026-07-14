@@ -68,7 +68,7 @@ export function SettingsIntegrations({
                 href="/api/salesforce/connect"
                 className="inline-flex rounded-lg bg-uplight-blue px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-uplight-navy"
               >
-                Connect Salesforce
+                {salesforceConnected ? "Reconnect Salesforce" : "Connect Salesforce"}
               </a>
               {salesforceReportsConfigured && (
                 <span className="text-xs text-uplight-green">

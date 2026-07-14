@@ -2,8 +2,9 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { exchangeCodeForTokens } from "@/lib/salesforce/client";
 import { getAppUrl } from "@/lib/salesforce/config";
-import { syncLeads } from "@/lib/salesforce/sync-leads";
 import { OAUTH_PKCE_COOKIE, OAUTH_STATE_COOKIE } from "@/lib/salesforce/oauth";
+import { setTokensOnResponse } from "@/lib/salesforce/token-store";
+import { syncLeads } from "@/lib/salesforce/sync-leads";
 
 const SETTINGS_PATH = "/settings";
 
@@ -14,7 +15,7 @@ const SETTINGS_PATH = "/settings";
  * 1. Salesforce redirects here with `code` and `state` query parameters.
  * 2. Verify the state matches the httpOnly cookie set in /connect (CSRF check).
  * 3. Exchange the authorization code for access + refresh tokens using the client secret.
- * 4. Store tokens securely server-side (Supabase in production).
+ * 4. Store tokens on the redirect response (so Set-Cookie survives the 302).
  * 5. Kick off an initial lead sync (logs records for now).
  * 6. Redirect back to Settings with a success or error message.
  */
@@ -52,9 +53,6 @@ export async function GET(request: NextRequest) {
   const storedState = cookieStore.get(OAUTH_STATE_COOKIE)?.value;
   const codeVerifier = cookieStore.get(OAUTH_PKCE_COOKIE)?.value;
 
-  cookieStore.delete(OAUTH_STATE_COOKIE);
-  cookieStore.delete(OAUTH_PKCE_COOKIE);
-
   if (!storedState || storedState !== state) {
     return redirectWith({ error: "Invalid OAuth state. Please try connecting again." });
   }
@@ -66,21 +64,30 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    await exchangeCodeForTokens(code, codeVerifier);
+    const tokens = await exchangeCodeForTokens(code, codeVerifier);
 
-    // Initial sync: fetch leads and log them. TODO: persist to Supabase.
+    let warning: string | undefined;
     try {
       await syncLeads();
     } catch (syncError) {
       // OAuth succeeded but sync failed — still report partial success.
       console.error("[salesforce/callback] Initial sync failed:", syncError);
-      return redirectWith({
-        connected: "true",
-        warning: "Connected to Salesforce, but initial lead sync failed. Check server logs.",
-      });
+      warning =
+        "Connected to Salesforce, but initial lead sync failed. Check server logs.";
     }
 
-    return redirectWith({ connected: "true" });
+    const response = redirectWith(
+      warning
+        ? { connected: "true", warning }
+        : { connected: "true" }
+    );
+
+    // Attach tokens + clear one-time OAuth cookies on the redirect response.
+    setTokensOnResponse(response, tokens);
+    response.cookies.set(OAUTH_STATE_COOKIE, "", { path: "/", maxAge: 0 });
+    response.cookies.set(OAUTH_PKCE_COOKIE, "", { path: "/", maxAge: 0 });
+
+    return response;
   } catch (tokenError) {
     const message =
       tokenError instanceof Error
