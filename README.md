@@ -87,3 +87,4 @@ The dashboard renders with mock data when Salesforce is not connected. Live repo
 - Next.js 15 (App Router)
 - TypeScript
 - Tailwind CSS 4
+# uplight-projects
