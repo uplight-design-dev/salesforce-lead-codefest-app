@@ -88,3 +88,4 @@ The dashboard renders with mock data when Salesforce is not connected. Live repo
 - TypeScript
 - Tailwind CSS 4
 # uplight-projects
+# uplight-projects
