@@ -177,12 +177,12 @@ export class SalesforceClient {
 
   /**
    * Executes a SOQL query against the Salesforce REST API.
-   * GET /services/data/v59.0/query?q={encoded SOQL}
+   * GET /services/data/v64.0/query?q={encoded SOQL}
    */
   async query<T = Record<string, unknown>>(
     soql: string
   ): Promise<SalesforceQueryResult<T>> {
-    const url = new URL(`${this.instanceUrl}/services/data/v59.0/query`);
+    const url = new URL(`${this.instanceUrl}/services/data/v64.0/query`);
     url.searchParams.set("q", soql);
 
     const response = await fetch(url.toString(), {
@@ -204,13 +204,13 @@ export class SalesforceClient {
 
   /**
    * Fetches a Salesforce report via the Analytics REST API.
-   * GET /services/data/v59.0/analytics/reports/{reportId}
+   * GET /services/data/v64.0/analytics/reports/{reportId}
    */
   async fetchReport<T = SalesforceReportResponse>(
     reportId: string
   ): Promise<T> {
     const response = await fetch(
-      `${this.instanceUrl}/services/data/v59.0/analytics/reports/${reportId}`,
+      `${this.instanceUrl}/services/data/v64.0/analytics/reports/${reportId}`,
       {
         headers: {
           Authorization: `Bearer ${this.accessToken}`,

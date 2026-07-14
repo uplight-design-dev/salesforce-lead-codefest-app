@@ -53,7 +53,7 @@ In your Vercel project → **Settings → Environment Variables**, set:
 | `SALESFORCE_CLIENT_SECRET` | Your Connected App Consumer Secret |
 | `SALESFORCE_REDIRECT_URI` | `https://salesforce-lead-codefest-app.vercel.app/api/salesforce/callback` |
 | `SALESFORCE_LOGIN_URL` | `https://uplight--partial2.sandbox.my.salesforce.com` |
-| `SALESFORCE_ENGAGED_CONTACTS_REPORT_ID` | `00OV1000002MCKjMAO` |
+| `SALESFORCE_ENGAGED_CONTACTS_REPORT_ID` | `00OWE00000DaPek2AF` |
 
 Redeploy after saving env vars.
 
