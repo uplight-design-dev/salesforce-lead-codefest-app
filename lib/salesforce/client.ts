@@ -144,6 +144,14 @@ export async function getSalesforceClient(): Promise<SalesforceClient | null> {
   const tokens = await getTokens();
   if (!tokens) return null;
 
+  return createSalesforceClient(tokens);
+}
+
+/** Builds a client from tokens already in hand (e.g. right after OAuth exchange). */
+export function createSalesforceClient(tokens: {
+  accessToken: string;
+  instanceUrl: string;
+}): SalesforceClient {
   return new SalesforceClient({
     accessToken: tokens.accessToken,
     instanceUrl: tokens.instanceUrl,
@@ -160,6 +168,11 @@ export class SalesforceClient {
   constructor(options: SalesforceClientOptions) {
     this.accessToken = options.accessToken;
     this.instanceUrl = options.instanceUrl.replace(/\/$/, "");
+  }
+
+  /** Org instance URL returned by Salesforce OAuth (no trailing slash). */
+  getInstanceUrl(): string {
+    return this.instanceUrl;
   }
 
   /**

@@ -1,5 +1,10 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import type {
+  ProbeCheck,
+  ProbeCheckStatus,
+  SalesforceProbeResult,
+} from "@/lib/salesforce/probe";
 
 type SettingsIntegrationsProps = {
   salesforceConnected: boolean;
@@ -7,10 +12,46 @@ type SettingsIntegrationsProps = {
   salesforceReportsConfigured: boolean;
   salesforceRedirectUri: string;
   salesforceLoginUrl: string;
+  salesforceProbe?: SalesforceProbeResult | null;
   connected?: boolean;
   error?: string;
   warning?: string;
 };
+
+const STATUS_STYLES: Record<ProbeCheckStatus, string> = {
+  ok: "bg-uplight-green/20 text-emerald-800",
+  empty: "bg-amber-100 text-amber-900",
+  missing: "bg-amber-100 text-amber-900",
+  forbidden: "bg-red-100 text-red-800",
+  error: "bg-red-100 text-red-800",
+  not_configured: "bg-surface text-muted",
+};
+
+const STATUS_LABELS: Record<ProbeCheckStatus, string> = {
+  ok: "Pulled",
+  empty: "Empty",
+  missing: "Not in sandbox",
+  forbidden: "No access",
+  error: "Failed",
+  not_configured: "Not configured",
+};
+
+function ProbeRow({ check }: { check: ProbeCheck }) {
+  return (
+    <div className="rounded-lg border border-border bg-white px-3 py-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium">{check.label}</p>
+          <p className="mt-1 text-xs text-muted">{check.detail}</p>
+        </div>
+        <Badge className={`shrink-0 ${STATUS_STYLES[check.status]}`}>
+          {STATUS_LABELS[check.status]}
+          {typeof check.count === "number" ? ` · ${check.count}` : ""}
+        </Badge>
+      </div>
+    </div>
+  );
+}
 
 export function SettingsIntegrations({
   salesforceConnected,
@@ -18,16 +59,49 @@ export function SettingsIntegrations({
   salesforceReportsConfigured,
   salesforceRedirectUri,
   salesforceLoginUrl,
+  salesforceProbe,
   connected,
   error,
   warning,
 }: SettingsIntegrationsProps) {
+  const bannerTone =
+    salesforceProbe && !salesforceProbe.dashboardReady
+      ? "border-amber-200 bg-amber-50 text-amber-950"
+      : "border-uplight-green/30 bg-uplight-green/10 text-emerald-800";
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       {connected && (
-        <div className="rounded-lg border border-uplight-green/30 bg-uplight-green/10 px-4 py-3 text-sm text-emerald-800">
-          Salesforce connected successfully.
-          {warning && <p className="mt-2 text-amber-700">{warning}</p>}
+        <div className={`rounded-lg border px-4 py-3 text-sm ${bannerTone}`}>
+          <p className="font-medium">Salesforce connected successfully.</p>
+          {salesforceProbe ? (
+            <div className="mt-2 space-y-1 text-sm opacity-90">
+              <p>
+                Dashboard report:{" "}
+                <strong>{STATUS_LABELS[salesforceProbe.report.status]}</strong>
+                {" — "}
+                {salesforceProbe.report.detail}
+              </p>
+              <p>
+                Lead API:{" "}
+                <strong>{STATUS_LABELS[salesforceProbe.leads.status]}</strong>
+                {" — "}
+                {salesforceProbe.leads.detail}
+              </p>
+              {!salesforceProbe.dashboardReady && (
+                <p className="mt-2">
+                  OAuth works, but the app cannot load live dashboard rows yet —
+                  overview/leads will keep using the backup CSV until the
+                  engaged-contacts report is available in this sandbox.
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="mt-1 opacity-90">
+              Checking what this connection can read from the sandbox…
+            </p>
+          )}
+          {warning && <p className="mt-2 text-amber-800">{warning}</p>}
         </div>
       )}
 
@@ -76,6 +150,29 @@ export function SettingsIntegrations({
                 </span>
               )}
             </div>
+
+            {salesforceConnected && salesforceProbe && (
+              <div className="mt-4 rounded-lg border border-border bg-surface/60 p-4">
+                <p className="text-sm font-medium">What this connection can pull</p>
+                <p className="mt-1 text-xs text-muted break-all">
+                  Instance: {salesforceProbe.instanceUrl}
+                </p>
+                <div className="mt-3 space-y-2">
+                  <ProbeRow check={salesforceProbe.report} />
+                  <ProbeRow check={salesforceProbe.leads} />
+                </div>
+                {!salesforceProbe.dashboardReady && (
+                  <p className="mt-3 text-xs text-amber-800">
+                    Tip: open the report in the partial2 sandbox UI. If it 404s
+                    there too, clone/share it into this org and update{" "}
+                    <code className="rounded bg-white px-1">
+                      SALESFORCE_ENGAGED_CONTACTS_REPORT_ID
+                    </code>{" "}
+                    to the sandbox report ID.
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="mt-4 rounded-lg border border-border bg-surface/60 p-4 text-sm">
               <p className="font-medium">Connected App callback URL</p>

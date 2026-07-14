@@ -1,10 +1,13 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { exchangeCodeForTokens } from "@/lib/salesforce/client";
+import {
+  createSalesforceClient,
+  exchangeCodeForTokens,
+} from "@/lib/salesforce/client";
 import { getAppUrl } from "@/lib/salesforce/config";
 import { OAUTH_PKCE_COOKIE, OAUTH_STATE_COOKIE } from "@/lib/salesforce/oauth";
+import { probeSalesforceAccess } from "@/lib/salesforce/probe";
 import { setTokensOnResponse } from "@/lib/salesforce/token-store";
-import { syncLeads } from "@/lib/salesforce/sync-leads";
 
 const SETTINGS_PATH = "/settings";
 
@@ -15,9 +18,9 @@ const SETTINGS_PATH = "/settings";
  * 1. Salesforce redirects here with `code` and `state` query parameters.
  * 2. Verify the state matches the httpOnly cookie set in /connect (CSRF check).
  * 3. Exchange the authorization code for access + refresh tokens using the client secret.
- * 4. Store tokens on the redirect response (so Set-Cookie survives the 302).
- * 5. Kick off an initial lead sync (logs records for now).
- * 6. Redirect back to Settings with a success or error message.
+ * 4. Probe report + Lead API access so Settings can show what was actually pulled.
+ * 5. Store tokens on the redirect response (so Set-Cookie survives the 302).
+ * 6. Redirect back to Settings with a success message.
  */
 export async function GET(request: NextRequest) {
   const appUrl = getAppUrl();
@@ -65,22 +68,16 @@ export async function GET(request: NextRequest) {
 
   try {
     const tokens = await exchangeCodeForTokens(code, codeVerifier);
+    const client = createSalesforceClient(tokens);
 
-    let warning: string | undefined;
     try {
-      await syncLeads();
-    } catch (syncError) {
-      // OAuth succeeded but sync failed — still report partial success.
-      console.error("[salesforce/callback] Initial sync failed:", syncError);
-      warning =
-        "Connected to Salesforce, but initial lead sync failed. Check server logs.";
+      const probe = await probeSalesforceAccess(client);
+      console.log("[salesforce/callback] Access probe:", JSON.stringify(probe));
+    } catch (probeError) {
+      console.error("[salesforce/callback] Access probe failed:", probeError);
     }
 
-    const response = redirectWith(
-      warning
-        ? { connected: "true", warning }
-        : { connected: "true" }
-    );
+    const response = redirectWith({ connected: "true" });
 
     // Attach tokens + clear one-time OAuth cookies on the redirect response.
     setTokensOnResponse(response, tokens);
