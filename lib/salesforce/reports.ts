@@ -10,10 +10,69 @@ import { getCsvLeads } from "@/lib/data/csv-leads";
 import { getCsvPipelineMetrics } from "@/lib/data/csv-metrics";
 import { mockLeads } from "@/lib/data/mock-leads";
 import { mockPipeline } from "@/lib/data/mock-pipeline";
+import type { DataSource } from "@/lib/types/data-source";
 import type { Lead, LeadStatus, Momentum, PipelineMetrics } from "@/lib/types/lead";
+
+export type { DataSource, DataSourceKind } from "@/lib/types/data-source";
 
 /** Salesforce report: [SDR] 2026-Engaged Contacts */
 export const ENGAGED_CONTACTS_REPORT_NAME = "[SDR] 2026-Engaged Contacts";
+
+const CSV_FALLBACK_LABEL = "SDR Lead Tracker NEW - Lead Tracker.csv";
+
+export type LeadsResult = {
+  leads: Lead[];
+  source: DataSource;
+};
+
+export type PipelineResult = {
+  pipeline: PipelineMetrics;
+  source: DataSource;
+};
+
+function salesforceSource(reportName: string, reportId: string): DataSource {
+  return {
+    kind: "salesforce",
+    label: "Salesforce sandbox",
+    detail: `${reportName} (${reportId})`,
+  };
+}
+
+function csvSource(
+  reason: NonNullable<DataSource["reason"]>
+): DataSource {
+  return {
+    kind: "csv",
+    label: "Backup CSV",
+    detail: CSV_FALLBACK_LABEL,
+    reason,
+  };
+}
+
+function mockSource(
+  reason: NonNullable<DataSource["reason"]>
+): DataSource {
+  return {
+    kind: "mock",
+    label: "Demo mock data",
+    detail: "Built-in sample leads",
+    reason,
+  };
+}
+
+function getFallbackLeadsResult(
+  reason: NonNullable<DataSource["reason"]>
+): LeadsResult {
+  const csvLeads = getCsvLeads();
+  if (csvLeads.length > 0) {
+    return { leads: csvLeads, source: csvSource(reason) };
+  }
+
+  console.log(
+    "[salesforce/reports] Using mock leads — CSV not found and Salesforce is not connected."
+  );
+  return { leads: mockLeads, source: mockSource(reason) };
+}
 
 export type SalesforceReportConfig = {
   engagedContactsReportId: string;
@@ -213,14 +272,36 @@ async function fetchEngagedContactsReport(): Promise<{
   };
 }
 
-function getFallbackLeads(): Lead[] {
-  const csvLeads = getCsvLeads();
-  if (csvLeads.length > 0) return csvLeads;
+/**
+ * Returns leads plus where they came from (Salesforce report, CSV, or mock).
+ * Prefer this when the UI needs a data-source indicator.
+ */
+export async function getLeadsResult(): Promise<LeadsResult> {
+  try {
+    const result = await fetchEngagedContactsReport();
+    if (!result) {
+      console.log(
+        "[salesforce/reports] Salesforce not connected — using SDR Lead Tracker CSV."
+      );
+      return getFallbackLeadsResult("not_connected");
+    }
 
-  console.log(
-    "[salesforce/reports] Using mock leads — CSV not found and Salesforce is not connected."
-  );
-  return mockLeads;
+    console.log(
+      `[salesforce/reports] Loaded ${result.leads.length} rows from "${result.reportName}" (${result.reportId}).`
+    );
+
+    if (result.leads.length === 0) {
+      return getFallbackLeadsResult("empty_report");
+    }
+
+    return {
+      leads: result.leads,
+      source: salesforceSource(result.reportName, result.reportId),
+    };
+  } catch (error) {
+    console.error("[salesforce/reports] Failed to fetch engaged contacts report:", error);
+    return getFallbackLeadsResult("fetch_error");
+  }
 }
 
 /**
@@ -228,24 +309,8 @@ function getFallbackLeads(): Lead[] {
  * Falls back to the SDR Lead Tracker CSV, then mock data.
  */
 export async function getLeads(): Promise<Lead[]> {
-  try {
-    const result = await fetchEngagedContactsReport();
-    if (!result) {
-      console.log(
-        "[salesforce/reports] Salesforce not connected — using SDR Lead Tracker CSV."
-      );
-      return getFallbackLeads();
-    }
-
-    console.log(
-      `[salesforce/reports] Loaded ${result.leads.length} rows from "${result.reportName}" (${result.reportId}).`
-    );
-
-    return result.leads.length > 0 ? result.leads : getFallbackLeads();
-  } catch (error) {
-    console.error("[salesforce/reports] Failed to fetch engaged contacts report:", error);
-    return getFallbackLeads();
-  }
+  const { leads } = await getLeadsResult();
+  return leads;
 }
 
 export async function getLeadById(id: string): Promise<Lead | undefined> {
@@ -254,9 +319,9 @@ export async function getLeadById(id: string): Promise<Lead | undefined> {
 }
 
 /**
- * Fetches pipeline metrics from a Salesforce report.
+ * Fetches pipeline metrics plus data-source metadata.
  */
-export async function fetchPipelineFromReport(): Promise<PipelineMetrics> {
+export async function fetchPipelineResult(): Promise<PipelineResult> {
   const reportConfig = getReportConfig();
   const client = await getSalesforceClient();
 
@@ -264,18 +329,39 @@ export async function fetchPipelineFromReport(): Promise<PipelineMetrics> {
     const csvPipeline = getCsvPipelineMetrics();
     if (getCsvLeads().length > 0) {
       console.log("[salesforce/reports] Using pipeline metrics from SDR Lead Tracker CSV.");
-      return csvPipeline;
+      return {
+        pipeline: csvPipeline,
+        source: csvSource(
+          client ? "report_not_configured" : "not_connected"
+        ),
+      };
     }
 
     console.log(
       "[salesforce/reports] Using mock pipeline — connect Salesforce and set SALESFORCE_PIPELINE_REPORT_ID."
     );
-    return mockPipeline;
+    return {
+      pipeline: mockPipeline,
+      source: mockSource(
+        client ? "report_not_configured" : "not_connected"
+      ),
+    };
   }
 
   // TODO: Parse pipeline report factMap into PipelineMetrics
   console.log(
     `[salesforce/reports] Would fetch pipeline report ${reportConfig.pipelineReportId} — returning mock data.`
   );
-  return mockPipeline;
+  return {
+    pipeline: mockPipeline,
+    source: mockSource("report_not_configured"),
+  };
+}
+
+/**
+ * Fetches pipeline metrics from a Salesforce report.
+ */
+export async function fetchPipelineFromReport(): Promise<PipelineMetrics> {
+  const { pipeline } = await fetchPipelineResult();
+  return pipeline;
 }
