@@ -1,5 +1,19 @@
 import type { LeadStatus, Momentum } from "@/lib/types/lead";
 
+export const LEAD_STATUSES: LeadStatus[] = [
+  "new",
+  "engaged",
+  "mql",
+  "assigned",
+  "contacted",
+  "sql",
+  "opportunity",
+  "nurturing",
+  "stalled",
+  "closed_won",
+  "closed_lost",
+];
+
 export const STATUS_LABELS: Record<LeadStatus, string> = {
   new: "New Lead",
   engaged: "Engaged",

@@ -2,7 +2,6 @@ import { FunnelChart } from "@/components/dashboard/funnel-chart";
 import { Header } from "@/components/layout/header";
 import { PageContent } from "@/components/layout/page-content";
 import { Card } from "@/components/ui/card";
-import { StatCard } from "@/components/ui/stat-card";
 import { getFunnelStages } from "@/lib/data/dashboard-data";
 import { fetchPipelineResult } from "@/lib/salesforce/reports";
 
@@ -19,11 +18,11 @@ export default async function PipelinePage() {
   const funnelStages = getFunnelStages();
 
   const metrics = [
-    { label: "Total Leads", value: pipeline.totalLeads, stage: funnelStages[0] },
-    { label: "MQLs", value: pipeline.mqls, stage: funnelStages[1] },
-    { label: "SQLs", value: pipeline.sqls, stage: funnelStages[2] },
-    { label: "Opportunities", value: pipeline.opportunities, stage: funnelStages[3] },
-    { label: "Closed Won", value: pipeline.closedWon, stage: funnelStages[4] },
+    { label: "Total Leads", value: pipeline.totalLeads },
+    { label: "MQLs", value: pipeline.mqls },
+    { label: "SQLs", value: pipeline.sqls },
+    { label: "Opportunities", value: pipeline.opportunities },
+    { label: "Closed Won", value: pipeline.closedWon },
   ];
 
   return (
@@ -35,19 +34,15 @@ export default async function PipelinePage() {
       />
 
       <PageContent className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          {metrics.map((m) => (
-            <StatCard key={m.label} label={m.label} value={m.value} accent="blue" />
-          ))}
-        </div>
+        <div className="grid gap-6 lg:grid-cols-5">
+          <div className="lg:col-span-3">
+            <FunnelChart
+              stages={funnelStages}
+              conversionRate={pipeline.conversionRate}
+            />
+          </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <FunnelChart
-            stages={funnelStages}
-            conversionRate={pipeline.conversionRate}
-          />
-
-          <Card>
+          <Card className="lg:col-span-2">
             <h3 className="mb-4 text-sm font-semibold">Funnel Stages</h3>
             <div className="space-y-4">
               {metrics.map((m, i) => (

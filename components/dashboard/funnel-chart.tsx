@@ -1,5 +1,5 @@
 import type { FunnelStage } from "@/lib/types/lead";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils/cn";
 
 type FunnelChartProps = {
   stages: FunnelStage[];
@@ -7,43 +7,54 @@ type FunnelChartProps = {
 };
 
 export function FunnelChart({ stages, conversionRate }: FunnelChartProps) {
-  const maxCount = stages[0]?.count ?? 1;
+  const lastIndex = stages.length - 1;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Pipeline Visibility</CardTitle>
-        <span className="text-sm font-semibold text-uplight-green">
-          {conversionRate}% conversion
-        </span>
-      </CardHeader>
+    <div className="relative flex min-h-[520px] flex-col overflow-hidden rounded-2xl bg-uplight-blue p-8 md:min-h-[560px] md:p-10">
+      <div
+        style={{
+          animation: "funnel-stage-in 520ms ease-out both",
+        }}
+      >
+        <p className="text-2xl font-semibold tracking-tight text-white md:text-3xl">
+          Sales Funnel
+        </p>
+        <p className="mt-1 text-sm text-white/75">
+          {conversionRate}% lead → customer conversion
+        </p>
+      </div>
 
-      <div className="space-y-3">
-        {stages.map((stage) => {
-          const widthPercent = Math.max((stage.count / maxCount) * 100, 8);
+      <div className="flex flex-1 flex-col items-center justify-center gap-px py-10">
+        {stages.map((stage, i) => {
+          const isLast = i === lastIndex;
+          // Stepped narrowing (widest → narrowest), centered like the reference.
+          const widthPercent =
+            stages.length <= 1 ? 100 : 100 - (i / lastIndex) * 58;
 
           return (
-            <div key={stage.label}>
-              <div className="mb-1 flex items-center justify-between text-sm">
-                <span className="font-medium">{stage.label}</span>
-                <span className="tabular-nums text-muted">{stage.count}</span>
-              </div>
-              <div className="h-8 w-full overflow-hidden rounded-md bg-surface">
-                <div
-                  className="flex h-full items-center rounded-md px-3 text-xs font-semibold text-white transition-all"
-                  style={{
-                    width: `${widthPercent}%`,
-                    backgroundColor: stage.color,
-                    minWidth: "3rem",
-                  }}
-                >
-                  {stage.count}
-                </div>
-              </div>
+            <div
+              key={stage.label}
+              className={cn(
+                "relative flex h-16 shrink-0 items-center justify-between gap-3 px-4 md:h-[4.75rem] md:px-5",
+                isLast ? "bg-uplight-green text-uplight-blue" : "bg-white text-uplight-black"
+              )}
+              style={{
+                width: `${widthPercent}%`,
+                animation: "funnel-stage-in 520ms ease-out both",
+                animationDelay: `${i * 90}ms`,
+              }}
+            >
+              <p className="min-w-0 truncate text-xl font-semibold tracking-tight md:text-2xl">
+                {stage.label}
+              </p>
+
+              <span className="shrink-0 text-xl font-semibold tracking-tight tabular-nums md:text-2xl">
+                {stage.count.toLocaleString()}
+              </span>
             </div>
           );
         })}
       </div>
-    </Card>
+    </div>
   );
 }

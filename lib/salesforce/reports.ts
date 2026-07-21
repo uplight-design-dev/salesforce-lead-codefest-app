@@ -6,6 +6,7 @@
  */
 
 import { getSalesforceClient, type SalesforceReportResponse } from "./client";
+import { applyStatusOverrides } from "@/lib/data/lead-status-overrides";
 import { getCsvLeads } from "@/lib/data/csv-leads";
 import { getCsvPipelineMetrics } from "@/lib/data/csv-metrics";
 import { mockLeads } from "@/lib/data/mock-leads";
@@ -60,18 +61,22 @@ function mockSource(
   };
 }
 
+function withOverrides(result: LeadsResult): LeadsResult {
+  return { ...result, leads: applyStatusOverrides(result.leads) };
+}
+
 function getFallbackLeadsResult(
   reason: NonNullable<DataSource["reason"]>
 ): LeadsResult {
   const csvLeads = getCsvLeads();
   if (csvLeads.length > 0) {
-    return { leads: csvLeads, source: csvSource(reason) };
+    return withOverrides({ leads: csvLeads, source: csvSource(reason) });
   }
 
   console.log(
     "[salesforce/reports] Using mock leads — CSV not found and Salesforce is not connected."
   );
-  return { leads: mockLeads, source: mockSource(reason) };
+  return withOverrides({ leads: mockLeads, source: mockSource(reason) });
 }
 
 export type SalesforceReportConfig = {
@@ -294,10 +299,10 @@ export async function getLeadsResult(): Promise<LeadsResult> {
       return getFallbackLeadsResult("empty_report");
     }
 
-    return {
+    return withOverrides({
       leads: result.leads,
       source: salesforceSource(result.reportName, result.reportId),
-    };
+    });
   } catch (error) {
     console.error("[salesforce/reports] Failed to fetch engaged contacts report:", error);
     return getFallbackLeadsResult("fetch_error");
