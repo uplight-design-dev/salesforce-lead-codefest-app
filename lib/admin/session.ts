@@ -7,8 +7,14 @@ import { cookies } from "next/headers";
 import type { NextResponse } from "next/server";
 
 export const ADMIN_SESSION_COOKIE = "admin_session";
-export const ADMIN_USERNAME = "admin";
 export const ADMIN_PASSWORD = "uplightiq";
+
+/** Demo admin accounts — username is matched case-insensitively. */
+export const ADMIN_USERS = [
+  "admin",
+  "jackson.deloria@uplight.com",
+  "jacob.newbauer@uplight.com",
+] as const;
 
 const SESSION_VALUE = "authenticated";
 
@@ -24,7 +30,11 @@ export function isValidAdminCredentials(
   username: string,
   password: string
 ): boolean {
-  return username === ADMIN_USERNAME && password === ADMIN_PASSWORD;
+  const normalizedUsername = username.trim().toLowerCase();
+  const isKnownUser = ADMIN_USERS.some(
+    (user) => user.toLowerCase() === normalizedUsername
+  );
+  return isKnownUser && password === ADMIN_PASSWORD;
 }
 
 export async function hasAdminSession(): Promise<boolean> {

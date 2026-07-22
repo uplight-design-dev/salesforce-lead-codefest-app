@@ -7,38 +7,37 @@ export type PipelineStageMetric = {
 export const overviewKpis = [
   {
     label: "Total Active Leads",
-    value: "12,483",
-    trend: { value: "↑ 14.2% vs last 30 days", positive: true },
+    value: "350",
+    subtext: "Utility accounts",
   },
   {
     label: "High Intent Accounts",
-    value: "385",
-    subtext: "AI prioritized",
+    value: "85",
+    subtext: "Score 85+",
   },
   {
-    label: "Avg SDR Response Time",
-    value: "1.8 hrs",
-    trend: { value: "↓ 22% vs last 30 days", positive: true },
+    label: "Event Attendees",
+    value: "47",
+    subtext: "UCC & webinars",
   },
   {
-    label: "Campaign Attribution ROI",
-    value: "$2.4M",
-    subtext: "Tracked influence",
+    label: "Engagement Touchpoints",
+    value: "144",
+    subtext: "Campaign interactions",
   },
   {
-    label: "Industry Alerts",
-    value: "17",
+    label: "At-Risk Leads",
+    value: "26",
+    subtext: "Need follow-up",
   },
 ];
 
 export const pipelineStages: PipelineStageMetric[] = [
-  { label: "Captured", count: 2965 },
-  { label: "Qualified", count: 1892, conversionFromPrevious: 63.8 },
-  { label: "Nurturing", count: 1234, conversionFromPrevious: 65.2 },
-  { label: "Meetings Sch.", count: 652, conversionFromPrevious: 52.8 },
-  { label: "Proposal", count: 296, conversionFromPrevious: 45.4 },
-  { label: "Closed Won", count: 142, conversionFromPrevious: 48.0 },
-  { label: "Closed Lost", count: 91 },
+  { label: "Total Leads", count: 350 },
+  { label: "MQLs", count: 120, conversionFromPrevious: 34.3 },
+  { label: "SQLs", count: 75, conversionFromPrevious: 62.5 },
+  { label: "Opportunities", count: 30, conversionFromPrevious: 40.0 },
+  { label: "Closed Won", count: 8, conversionFromPrevious: 26.7 },
 ];
 
 export const pipelineValue = {

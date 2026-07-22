@@ -20,6 +20,36 @@ export type EngagementActivity = {
   source: "marketing" | "sales" | "website" | "webinar";
 };
 
+export type IntentScoreBreakdownItem = {
+  parameter: string;
+  threshold: string;
+  points: number;
+  observed: string;
+  awarded: boolean;
+};
+
+export type MqlCriterionResult = {
+  key: string;
+  label: string;
+  detail: string;
+  met: boolean;
+};
+
+export type MqlQualification = {
+  qualifies: boolean;
+  fitsIcp: boolean;
+  fitCount: number;
+  fitRequired: number;
+  engagementCount: number;
+  engagementRequired: number;
+  scoreMeetsThreshold: boolean;
+  scoreThreshold: number;
+  leadScore: number;
+  fitCriteria: MqlCriterionResult[];
+  engagementCriteria: MqlCriterionResult[];
+  ruleSummary: string;
+};
+
 export type Lead = {
   id: string;
   name: string;
@@ -29,6 +59,12 @@ export type Lead = {
   status: LeadStatus;
   owner: string;
   engagementScore: number;
+  /** Segment/touchpoint base before 14-day intent bonuses. */
+  baseEngagementScore?: number;
+  /** Points from High-Intent Lead Scoring Criteria (Last 14 Days). */
+  intentScoreBonus?: number;
+  intentScoreBreakdown?: IntentScoreBreakdownItem[];
+  mqlQualification?: MqlQualification;
   momentum: Momentum;
   lastActivity: string;
   source: string;

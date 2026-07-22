@@ -7,10 +7,11 @@
 
 import { getSalesforceClient, type SalesforceReportResponse } from "./client";
 import { applyStatusOverrides } from "@/lib/data/lead-status-overrides";
-import { getCsvLeads } from "@/lib/data/csv-leads";
+import { getCsvLeads, getCsvSourceMeta } from "@/lib/data/csv-leads";
 import { getCsvPipelineMetrics } from "@/lib/data/csv-metrics";
 import { mockLeads } from "@/lib/data/mock-leads";
 import { mockPipeline } from "@/lib/data/mock-pipeline";
+import { sortLeadsForDisplay } from "@/lib/leads/sort-leads";
 import type { DataSource } from "@/lib/types/data-source";
 import type { Lead, LeadStatus, Momentum, PipelineMetrics } from "@/lib/types/lead";
 
@@ -19,7 +20,9 @@ export type { DataSource, DataSourceKind } from "@/lib/types/data-source";
 /** Salesforce report: [SDR] 2026-Engaged Contacts */
 export const ENGAGED_CONTACTS_REPORT_NAME = "[SDR] 2026-Engaged Contacts";
 
-const CSV_FALLBACK_LABEL = "SDR Lead Tracker NEW - Lead Tracker.csv";
+function getCsvFallbackLabel(): string {
+  return getCsvSourceMeta().filename;
+}
 
 export type LeadsResult = {
   leads: Lead[];
@@ -45,7 +48,7 @@ function csvSource(
   return {
     kind: "csv",
     label: "Backup CSV",
-    detail: CSV_FALLBACK_LABEL,
+    detail: getCsvFallbackLabel(),
     reason,
   };
 }
@@ -62,7 +65,10 @@ function mockSource(
 }
 
 function withOverrides(result: LeadsResult): LeadsResult {
-  return { ...result, leads: applyStatusOverrides(result.leads) };
+  return {
+    ...result,
+    leads: sortLeadsForDisplay(applyStatusOverrides(result.leads)),
+  };
 }
 
 function getFallbackLeadsResult(

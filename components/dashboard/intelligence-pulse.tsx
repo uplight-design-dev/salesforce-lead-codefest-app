@@ -46,7 +46,7 @@ export function IntelligencePulse({ insights }: IntelligencePulseProps) {
       </ul>
 
       <Link
-        href="/copilot"
+        href="/insights"
         className="mt-6 text-sm font-medium text-uplight-blue hover:underline"
       >
         View all insights →

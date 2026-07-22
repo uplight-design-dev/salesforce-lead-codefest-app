@@ -176,23 +176,15 @@ export function getCsvOverviewKpis(): OverviewKpi[] {
 }
 
 export function getCsvPipelineStages(): PipelineStageMetric[] {
-  const leads = getCsvLeads();
-  const captured = leads.length;
-  const qualified = countScoreAtLeast(leads, 76);
-  const nurturing = countByStatus(leads, "nurturing") + countByStatus(leads, "mql");
-  const meetings = leads.filter((lead) => (lead.webinarAttendance ?? 0) > 0).length;
-  const assigned = leads.filter((lead) => lead.owner !== "Unassigned").length;
-  const closedWon = countByStatus(leads, "closed_won");
-  const closedLost = countByStatus(leads, "closed_lost");
+  const metrics = getCsvPipelineMetrics();
 
+  // Match the Pipeline page funnel stages, shown horizontally with % conversion.
   const stages = [
-    { label: "Captured", count: captured },
-    { label: "Qualified", count: qualified },
-    { label: "Nurturing", count: nurturing },
-    { label: "Meetings Sch.", count: meetings },
-    { label: "SDR Assigned", count: assigned },
-    { label: "Closed Won", count: closedWon },
-    { label: "Closed Lost", count: closedLost },
+    { label: "Total Leads", count: metrics.totalLeads },
+    { label: "MQLs", count: metrics.mqls },
+    { label: "SQLs", count: metrics.sqls },
+    { label: "Opportunities", count: metrics.opportunities },
+    { label: "Closed Won", count: metrics.closedWon },
   ];
 
   return stages.map((stage, index) => ({

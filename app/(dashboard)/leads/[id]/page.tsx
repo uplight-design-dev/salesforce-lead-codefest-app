@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { AiSummary } from "@/components/leads/ai-summary";
 import { EngagementTimeline } from "@/components/leads/engagement-timeline";
+import { IntentScorePanel } from "@/components/leads/intent-score-panel";
+import { MqlQualificationPanel } from "@/components/leads/mql-qualification-panel";
 import { Header } from "@/components/layout/header";
 import { PageContent } from "@/components/layout/page-content";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +70,19 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
           <StatCard label="Asset Downloads" value={lead.assetDownloads ?? 0} accent="navy" />
           <StatCard label="Webinars" value={lead.webinarAttendance ?? 0} accent="green" />
         </div>
+
+        {lead.mqlQualification && (
+          <MqlQualificationPanel qualification={lead.mqlQualification} />
+        )}
+
+        {lead.intentScoreBreakdown && lead.intentScoreBreakdown.length > 0 && (
+          <IntentScorePanel
+            baseScore={lead.baseEngagementScore}
+            intentBonus={lead.intentScoreBonus}
+            totalScore={lead.engagementScore}
+            breakdown={lead.intentScoreBreakdown}
+          />
+        )}
 
         <div className="grid gap-6 lg:grid-cols-2">
           <EngagementTimeline activities={lead.activities} />

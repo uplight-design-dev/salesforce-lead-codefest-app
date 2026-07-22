@@ -11,10 +11,18 @@ import type {
   LeadStatus,
   Momentum,
 } from "@/lib/types/lead";
+import { calculateIntentScoreBonus } from "@/lib/leads/intent-scoring";
+import {
+  applyMqlStatus,
+  evaluateMqlQualification,
+} from "@/lib/leads/mql-qualification";
 
 const DEFAULT_CSV_FILENAME = "SDR Lead Tracker NEW - Lead Tracker.csv";
+const UPLOADED_CSV_FILENAME = "lead-tracker.csv";
+const UPLOAD_META_FILENAME = "lead-tracker-meta.json";
 
-const CSV_COLUMNS = [
+/** Columns expected in an SDR Lead Tracker export. */
+export const CSV_COLUMNS = [
   "Owner",
   "Full Name",
   "Title",
@@ -32,7 +40,31 @@ const CSV_COLUMNS = [
   "Notes/Activity",
 ] as const;
 
+/** Minimum columns required for a usable upload. */
+export const REQUIRED_CSV_COLUMNS = [
+  "Email",
+  "Company",
+  "Full Name",
+  "Lead Status",
+] as const;
+
 type CsvRow = Record<(typeof CSV_COLUMNS)[number], string>;
+
+export type CsvSourceMeta = {
+  filename: string;
+  source: "upload" | "bundled" | "env" | "missing";
+  rowCount: number;
+  leadCount: number;
+  uploadedAt: string | null;
+  pathLabel: string;
+};
+
+type UploadMetaFile = {
+  originalFilename: string;
+  uploadedAt: string;
+  rowCount: number;
+  leadCount: number;
+};
 
 const SEGMENT_BASE_SCORE: Record<string, number> = {
   "1_Platinum": 92,
@@ -59,14 +91,58 @@ const STATUS_PRIORITY: Record<LeadStatus, number> = {
 let cachedLeads: Lead[] | null = null;
 let cachedRows: CsvRow[] | null = null;
 
-function getCsvPath(): string {
-  const configured = process.env.LEAD_TRACKER_CSV_PATH;
-  if (configured) {
-    return path.isAbsolute(configured)
-      ? configured
-      : path.join(process.cwd(), configured);
-  }
+function getDataDir(): string {
+  return path.join(process.cwd(), ".data");
+}
+
+function getUploadedCsvPath(): string {
+  return path.join(getDataDir(), UPLOADED_CSV_FILENAME);
+}
+
+function getUploadMetaPath(): string {
+  return path.join(getDataDir(), UPLOAD_META_FILENAME);
+}
+
+function getBundledCsvPath(): string {
   return path.join(process.cwd(), DEFAULT_CSV_FILENAME);
+}
+
+function getEnvCsvPath(): string | null {
+  const configured = process.env.LEAD_TRACKER_CSV_PATH;
+  if (!configured) return null;
+  return path.isAbsolute(configured)
+    ? configured
+    : path.join(process.cwd(), configured);
+}
+
+/**
+ * Prefer an admin-uploaded CSV, then LEAD_TRACKER_CSV_PATH, then the bundled export.
+ */
+function getCsvPath(): string {
+  const uploaded = getUploadedCsvPath();
+  if (fs.existsSync(uploaded)) return uploaded;
+
+  const envPath = getEnvCsvPath();
+  if (envPath && fs.existsSync(envPath)) return envPath;
+
+  return getBundledCsvPath();
+}
+
+function readUploadMeta(): UploadMetaFile | null {
+  try {
+    const metaPath = getUploadMetaPath();
+    if (!fs.existsSync(metaPath)) return null;
+    const parsed = JSON.parse(fs.readFileSync(metaPath, "utf8")) as UploadMetaFile;
+    if (!parsed?.originalFilename || !parsed?.uploadedAt) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function clearCsvCache(): void {
+  cachedLeads = null;
+  cachedRows = null;
 }
 
 function parseCsvLine(line: string): string[] {
@@ -263,6 +339,8 @@ function buildAiSummary(params: {
   webinarAttendance: number;
   segment: string;
   accountHealth: string;
+  intentBonus?: number;
+  mqlQualified?: boolean;
 }): string {
   const parts: string[] = [];
 
@@ -285,13 +363,21 @@ function buildAiSummary(params: {
   if (params.accountHealth) {
     parts.push(`${params.accountHealth.toLowerCase()} account health`);
   }
+  if ((params.intentBonus ?? 0) > 0) {
+    parts.push(`+${params.intentBonus} high-intent points (last 14 days)`);
+  }
+  if (params.mqlQualified) {
+    parts.push("meets Suggested MQL rule");
+  }
 
   if (parts.length === 0) {
     return "Recent engagement detected from the SDR lead tracker export.";
   }
 
   const intent =
-    params.accountHealth === "Green" && params.touchpoints >= 3
+    params.mqlQualified ||
+    (params.intentBonus ?? 0) >= 40 ||
+    (params.accountHealth === "Green" && params.touchpoints >= 3)
       ? "Strong buying intent."
       : params.accountHealth === "Yellow"
         ? "Moderate intent — follow-up recommended."
@@ -318,6 +404,16 @@ function groupRowsByEmail(rows: CsvRow[]): Map<string, CsvRow[]> {
   return grouped;
 }
 
+/** Latest parseable activity date in the export — used as the 14-day window anchor. */
+function latestActivityDate(rows: CsvRow[]): Date {
+  let latest = 0;
+  for (const row of rows) {
+    const parsed = parseActivityDate(row["Last Activity Date"]);
+    if (parsed) latest = Math.max(latest, parsed.getTime());
+  }
+  return latest > 0 ? new Date(latest) : new Date();
+}
+
 function rowToActivity(row: CsvRow, index: number): EngagementActivity {
   return {
     id: `activity-${index}`,
@@ -327,7 +423,7 @@ function rowToActivity(row: CsvRow, index: number): EngagementActivity {
   };
 }
 
-function buildLead(email: string, rows: CsvRow[]): Lead {
+function buildLead(email: string, rows: CsvRow[], intentAsOf: Date): Lead {
   const sortedRows = [...rows].sort((a, b) => {
     const aDate = parseActivityDate(a["Last Activity Date"])?.getTime() ?? 0;
     const bDate = parseActivityDate(b["Last Activity Date"])?.getTime() ?? 0;
@@ -350,11 +446,25 @@ function buildLead(email: string, rows: CsvRow[]): Lead {
     row["Member Status"].toLowerCase().includes("converted")
   ).length;
 
-  const engagementScore = engagementScoreFromSignals(
+  const engagementScoreBase = engagementScoreFromSignals(
     segment,
     sortedRows.length,
     accountHealth
   );
+
+  const intentEvents = sortedRows.flatMap((row) => {
+    const date = parseActivityDate(row["Last Activity Date"]);
+    if (!date) return [];
+    return [
+      {
+        date,
+        memberStatus: row["Member Status"],
+        campaignName: row["Campaign Name"],
+      },
+    ];
+  });
+  const intent = calculateIntentScoreBonus(intentEvents, intentAsOf);
+  const engagementScore = engagementScoreBase + intent.bonus;
 
   const activities = sortedRows
     .map((row, index) => rowToActivity(row, index))
@@ -364,29 +474,49 @@ function buildLead(email: string, rows: CsvRow[]): Lead {
   const name =
     firstNonEmpty(sortedRows.map((row) => row["Full Name"])) ||
     email.split("@")[0].replace(/[._]/g, " ");
+  const company = firstNonEmpty(sortedRows.map((row) => row.Company));
+  const title = firstNonEmpty(sortedRows.map((row) => row.Title));
+  const sourceStatus = pickLeadStatus(sortedRows.map((row) => row["Lead Status"]));
+
+  const mqlQualification = evaluateMqlQualification({
+    title,
+    company,
+    email: latest.Email.trim(),
+    segment,
+    leadScore: engagementScore,
+    events: intentEvents,
+    asOf: intentAsOf,
+  });
+  const status = applyMqlStatus(sourceStatus, mqlQualification);
 
   return {
     id: leadIdFromEmail(email),
     name,
     email: latest.Email.trim(),
-    company: firstNonEmpty(sortedRows.map((row) => row.Company)),
-    title: firstNonEmpty(sortedRows.map((row) => row.Title)),
-    status: pickLeadStatus(sortedRows.map((row) => row["Lead Status"])),
+    company,
+    title,
+    status,
     owner,
     engagementScore,
+    baseEngagementScore: engagementScoreBase,
+    intentScoreBonus: intent.bonus,
+    intentScoreBreakdown: intent.breakdown,
+    mqlQualification,
     momentum: momentumFromSignals(accountHealth, lastActivity),
     lastActivity,
     source: campaignChannel(latest["Campaign Name"]),
     websiteVisits,
     assetDownloads,
     webinarAttendance,
-    conversionProbability: Math.min(95, Math.max(10, engagementScore - 5)),
+    conversionProbability: Math.min(95, Math.max(10, Math.min(engagementScore, 99) - 5)),
     aiSummary: buildAiSummary({
       touchpoints: sortedRows.length,
       websiteVisits,
       webinarAttendance,
       segment,
       accountHealth,
+      intentBonus: intent.bonus,
+      mqlQualified: mqlQualification.qualifies,
     }),
     activities,
   };
@@ -401,13 +531,173 @@ function loadCsvContent(): { rows: CsvRow[]; leads: Lead[] } {
 
   const content = fs.readFileSync(csvPath, "utf8");
   const rows = parseCsv(content);
+  const intentAsOf = latestActivityDate(rows);
   const grouped = groupRowsByEmail(rows);
   const leads = Array.from(grouped.entries())
-    .map(([email, emailRows]) => buildLead(email, emailRows))
+    .map(([email, emailRows]) => buildLead(email, emailRows, intentAsOf))
     .sort((a, b) => b.engagementScore - a.engagementScore);
 
-  console.log(`[csv-leads] Loaded ${leads.length} leads from ${path.basename(csvPath)}`);
+  console.log(
+    `[csv-leads] Loaded ${leads.length} leads from ${path.basename(csvPath)} (intent window as of ${intentAsOf.toISOString().slice(0, 10)})`
+  );
   return { rows, leads };
+}
+
+export type CsvValidationResult =
+  | {
+      ok: true;
+      rowCount: number;
+      leadCount: number;
+      missingOptionalColumns: string[];
+    }
+  | {
+      ok: false;
+      error: string;
+      missingRequiredColumns?: string[];
+    };
+
+/**
+ * Validates Lead Tracker CSV content before saving an upload.
+ */
+export function validateCsvContent(content: string): CsvValidationResult {
+  const trimmed = content.replace(/^\uFEFF/, "").trim();
+  if (!trimmed) {
+    return { ok: false, error: "CSV file is empty." };
+  }
+
+  const lines = trimmed.split(/\r?\n/).filter(Boolean);
+  if (lines.length < 2) {
+    return {
+      ok: false,
+      error: "CSV needs a header row and at least one data row.",
+    };
+  }
+
+  const header = parseCsvLine(lines[0]).map((value) => value.trim());
+  const missingRequired = REQUIRED_CSV_COLUMNS.filter(
+    (column) => !header.includes(column)
+  );
+
+  if (missingRequired.length > 0) {
+    return {
+      ok: false,
+      error: `Missing required columns: ${missingRequired.join(", ")}.`,
+      missingRequiredColumns: [...missingRequired],
+    };
+  }
+
+  const rows = parseCsv(content);
+  if (rows.length === 0) {
+    return { ok: false, error: "No data rows found in the CSV." };
+  }
+
+  const leads = Array.from(groupRowsByEmail(rows).entries());
+  if (leads.length === 0) {
+    return {
+      ok: false,
+      error:
+        "No usable leads found. Each row needs a non-empty Email and Company.",
+    };
+  }
+
+  const missingOptional = CSV_COLUMNS.filter(
+    (column) =>
+      !(REQUIRED_CSV_COLUMNS as readonly string[]).includes(column) &&
+      !header.includes(column)
+  );
+
+  return {
+    ok: true,
+    rowCount: rows.length,
+    leadCount: leads.length,
+    missingOptionalColumns: [...missingOptional],
+  };
+}
+
+/**
+ * Saves an admin-uploaded Lead Tracker CSV and refreshes the in-memory cache.
+ */
+export function saveUploadedCsv(
+  content: string,
+  originalFilename: string
+): CsvSourceMeta {
+  const validation = validateCsvContent(content);
+  if (!validation.ok) {
+    throw new Error(validation.error);
+  }
+
+  const dataDir = getDataDir();
+  fs.mkdirSync(dataDir, { recursive: true });
+
+  const csvPath = getUploadedCsvPath();
+  fs.writeFileSync(csvPath, content.replace(/^\uFEFF/, ""), "utf8");
+
+  const meta: UploadMetaFile = {
+    originalFilename: originalFilename || UPLOADED_CSV_FILENAME,
+    uploadedAt: new Date().toISOString(),
+    rowCount: validation.rowCount,
+    leadCount: validation.leadCount,
+  };
+  fs.writeFileSync(getUploadMetaPath(), JSON.stringify(meta, null, 2), "utf8");
+
+  clearCsvCache();
+  // Warm cache from the new file.
+  const loaded = loadCsvContent();
+  cachedRows = loaded.rows;
+  cachedLeads = loaded.leads;
+
+  return getCsvSourceMeta();
+}
+
+export function getCsvSourceMeta(): CsvSourceMeta {
+  const uploadedPath = getUploadedCsvPath();
+  const uploadMeta = readUploadMeta();
+  const leads = getCsvLeads();
+  const rows = getCsvRows();
+
+  if (fs.existsSync(uploadedPath)) {
+    return {
+      filename: uploadMeta?.originalFilename ?? UPLOADED_CSV_FILENAME,
+      source: "upload",
+      rowCount: uploadMeta?.rowCount || rows.length,
+      leadCount: uploadMeta?.leadCount || leads.length,
+      uploadedAt: uploadMeta?.uploadedAt ?? null,
+      pathLabel: `.data/${UPLOADED_CSV_FILENAME}`,
+    };
+  }
+
+  const envPath = getEnvCsvPath();
+  if (envPath && fs.existsSync(envPath)) {
+    return {
+      filename: path.basename(envPath),
+      source: "env",
+      rowCount: rows.length,
+      leadCount: leads.length,
+      uploadedAt: null,
+      pathLabel: path.basename(envPath),
+    };
+  }
+
+  const bundled = getBundledCsvPath();
+  if (fs.existsSync(bundled)) {
+    return {
+      filename: DEFAULT_CSV_FILENAME,
+      source: "bundled",
+      rowCount: rows.length,
+      leadCount: leads.length,
+      uploadedAt: null,
+      pathLabel: DEFAULT_CSV_FILENAME,
+    };
+  }
+
+  return {
+    filename: "None",
+    source: "missing",
+    rowCount: 0,
+    leadCount: 0,
+    uploadedAt: null,
+    pathLabel: "No CSV loaded",
+  };
 }
 
 /** Raw CSV rows (cached). Useful for campaign-level aggregations. */

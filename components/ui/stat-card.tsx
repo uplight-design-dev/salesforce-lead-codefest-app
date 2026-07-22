@@ -7,6 +7,7 @@ type StatCardProps = {
   subtext?: string;
   trend?: { value: string; positive?: boolean };
   accent?: "green" | "blue" | "navy" | "default";
+  className?: string;
 };
 
 export function StatCard({
@@ -15,9 +16,10 @@ export function StatCard({
   subtext,
   trend,
   accent = "default",
+  className,
 }: StatCardProps) {
   return (
-    <Card className="flex flex-col justify-between py-5">
+    <Card className={cn("flex flex-col justify-between py-5", className)}>
       <p className="text-[15px] font-medium text-muted">{label}</p>
       <p className="mt-3 text-[2.25rem] font-bold leading-none tracking-tight">
         {value}

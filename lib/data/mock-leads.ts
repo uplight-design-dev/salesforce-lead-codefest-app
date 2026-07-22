@@ -2,6 +2,27 @@ import type { HighIntentAlert, Lead } from "@/lib/types/lead";
 
 export const mockLeads: Lead[] = [
   {
+    id: "lead-000",
+    name: "Priya Nair",
+    email: "priya.nair@coned.com",
+    company: "Con Edison",
+    title: "Program Manager",
+    status: "new",
+    owner: "Unassigned",
+    engagementScore: 72,
+    momentum: "accelerating",
+    lastActivity: "2026-06-12",
+    source: "Website Form",
+    websiteVisits: 1,
+    assetDownloads: 0,
+    webinarAttendance: 0,
+    conversionProbability: 45,
+    aiSummary: "Brand-new inbound lead — prioritize first-touch outreach.",
+    activities: [
+      { id: "n1", date: "2026-06-12", activity: "Website Form Submit", source: "website" },
+    ],
+  },
+  {
     id: "lead-001",
     name: "John Smith",
     email: "john.smith@microsoft.com",

@@ -1,5 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { SettingsCsvUpload } from "@/components/settings/settings-csv-upload";
+import type { CsvSourceMeta } from "@/lib/data/csv-leads";
 import type {
   ProbeCheck,
   ProbeCheckStatus,
@@ -16,6 +18,8 @@ type SettingsIntegrationsProps = {
   connected?: boolean;
   error?: string;
   warning?: string;
+  csvMeta: CsvSourceMeta;
+  csvAdminAuthenticated: boolean;
 };
 
 const STATUS_STYLES: Record<ProbeCheckStatus, string> = {
@@ -63,6 +67,8 @@ export function SettingsIntegrations({
   connected,
   error,
   warning,
+  csvMeta,
+  csvAdminAuthenticated,
 }: SettingsIntegrationsProps) {
   const bannerTone =
     salesforceProbe && !salesforceProbe.dashboardReady
@@ -231,6 +237,18 @@ export function SettingsIntegrations({
             </p>
           </Card>
         </div>
+      </section>
+
+      <section>
+        <h2 className="mb-1 text-lg font-semibold">Data refresh</h2>
+        <p className="mb-5 text-sm text-muted">
+          Until Salesforce sandbox holds enough data, refresh the dashboard from
+          a Lead Tracker CSV export.
+        </p>
+        <SettingsCsvUpload
+          initialMeta={csvMeta}
+          initiallyAuthenticated={csvAdminAuthenticated}
+        />
       </section>
     </div>
   );

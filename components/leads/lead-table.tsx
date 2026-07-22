@@ -34,12 +34,19 @@ export function LeadTable({ leads }: LeadTableProps) {
             {leads.map((lead) => (
               <tr key={lead.id} className="hover:bg-surface/60">
                 <td className="px-6 py-4">
-                  <Link
-                    href={`/leads/${lead.id}`}
-                    className="font-semibold text-uplight-blue hover:underline"
-                  >
-                    {lead.name}
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/leads/${lead.id}`}
+                      className="font-semibold text-uplight-blue hover:underline"
+                    >
+                      {lead.name}
+                    </Link>
+                    {lead.status === "new" && (
+                      <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                        New
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-muted">{lead.email}</p>
                 </td>
                 <td className="px-6 py-4">{lead.company}</td>

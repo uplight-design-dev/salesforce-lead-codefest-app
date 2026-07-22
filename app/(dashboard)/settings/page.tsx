@@ -4,6 +4,8 @@ import { getReportConfig } from "@/lib/salesforce/reports";
 import { getSalesforceClient } from "@/lib/salesforce/client";
 import { getSalesforceLoginUrl, getSalesforceRedirectUri } from "@/lib/salesforce/config";
 import { probeSalesforceAccess } from "@/lib/salesforce/probe";
+import { hasAdminSession } from "@/lib/admin/session";
+import { getCsvSourceMeta } from "@/lib/data/csv-leads";
 import { SettingsIntegrations } from "@/components/settings/settings-integrations";
 import { Header } from "@/components/layout/header";
 import { PageContent } from "@/components/layout/page-content";
@@ -37,7 +39,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     <>
       <Header
         title="Settings"
-        description="Connect data sources — Salesforce reports and Google Analytics for uplight.com."
+        description="Connect data sources — Salesforce reports, Google Analytics, and Lead Tracker CSV uploads."
       />
 
       <PageContent>
@@ -51,6 +53,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           connected={oauthSucceeded}
           error={params.error ? decodeURIComponent(params.error) : undefined}
           warning={params.warning}
+          csvMeta={getCsvSourceMeta()}
+          csvAdminAuthenticated={await hasAdminSession()}
         />
       </PageContent>
     </>
