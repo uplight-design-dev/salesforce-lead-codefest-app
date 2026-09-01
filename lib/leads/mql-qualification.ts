@@ -314,14 +314,14 @@ function evaluateEngagementCriteria(
     {
       key: "email_clicks",
       label: "Email Clicks",
-      detail: `${emailClicks} in last 14 days (need ≥ 2)`,
-      met: emailClicks >= 2,
+      detail: `${emailClicks} in last 14 days (need ≥ 1)`,
+      met: emailClicks >= 1,
     },
     {
       key: "website_visits",
       label: "Website Visits",
-      detail: `${websiteVisits} in last 14 days (need ≥ 3)`,
-      met: websiteVisits >= 3,
+      detail: `${websiteVisits} in last 14 days (need ≥ 2)`,
+      met: websiteVisits >= 2,
     },
     {
       key: "solution_page_visits",
@@ -356,8 +356,8 @@ function evaluateEngagementCriteria(
     {
       key: "newsletter_click",
       label: "Newsletter Click",
-      detail: `${newsletterClicks} observed (need ≥ 2)`,
-      met: newsletterClicks >= 2,
+      detail: `${newsletterClicks} observed (need ≥ 1)`,
+      met: newsletterClicks >= 1,
     },
     {
       key: "return_website_visits",
@@ -367,7 +367,7 @@ function evaluateEngagementCriteria(
     },
     {
       key: "video_view",
-      label: "Video View (≥60%)",
+      label: "Video View (≥40%)",
       detail: "Not available in Lead Tracker CSV",
       met: false,
     },

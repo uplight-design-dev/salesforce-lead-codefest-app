@@ -51,9 +51,16 @@ export function LeadTable({ leads }: LeadTableProps) {
                 </td>
                 <td className="px-6 py-4">{lead.company}</td>
                 <td className="px-6 py-4">
-                  <Badge className={`px-3 py-1 text-sm ${STATUS_STYLES[lead.status]}`}>
-                    {STATUS_LABELS[lead.status]}
-                  </Badge>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge className={`px-3 py-1 text-sm ${STATUS_STYLES[lead.status]}`}>
+                      {STATUS_LABELS[lead.status]}
+                    </Badge>
+                    {lead.isNoGoAccount && (
+                      <Badge className="bg-rose-50 px-2 py-0.5 text-xs text-rose-700">
+                        No-Go
+                      </Badge>
+                    )}
+                  </div>
                 </td>
                 <td className="px-6 py-4">{lead.owner}</td>
                 <td className="px-6 py-4">

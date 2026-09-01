@@ -1,15 +1,29 @@
+import { Suspense } from "react";
 import { PipelineFunnelSection } from "@/components/dashboard/pipeline-funnel-section";
+import { PeriodSelector } from "@/components/dashboard/period-selector";
 import { Header } from "@/components/layout/header";
 import { PageContent } from "@/components/layout/page-content";
-import { getFunnelStages } from "@/lib/data/dashboard-data";
-import { fetchPipelineResult, getLeadsResult } from "@/lib/salesforce/reports";
+import { getFunnelStages, getPipelineMetrics } from "@/lib/data/dashboard-data";
+import {
+  filterLeadsByPeriod,
+  parsePeriodKey,
+  periodLabel,
+  resolveAsOfFromLeads,
+} from "@/lib/leads/period";
+import { getLeadsResult } from "@/lib/salesforce/reports";
 
-export default async function PipelinePage() {
-  const [{ pipeline, source }, { leads }] = await Promise.all([
-    fetchPipelineResult(),
-    getLeadsResult(),
-  ]);
-  const funnelStages = getFunnelStages();
+type PipelinePageProps = {
+  searchParams: Promise<{ period?: string }>;
+};
+
+export default async function PipelinePage({ searchParams }: PipelinePageProps) {
+  const params = await searchParams;
+  const period = parsePeriodKey(params.period);
+  const { leads: allLeads, source } = await getLeadsResult();
+  const asOf = resolveAsOfFromLeads(allLeads);
+  const leads = filterLeadsByPeriod(allLeads, period, asOf);
+  const pipeline = getPipelineMetrics(leads);
+  const funnelStages = getFunnelStages(leads);
 
   const metrics = [
     { label: "Total Leads", value: pipeline.totalLeads },
@@ -23,8 +37,13 @@ export default async function PipelinePage() {
     <>
       <Header
         title="Pipeline Visibility"
-        description="Real-time view of where leads are in the sales funnel and how effectively they progress."
+        description={`Funnel progress for ${periodLabel(period).toLowerCase()}.`}
         dataSource={source}
+        actions={
+          <Suspense fallback={null}>
+            <PeriodSelector active={period} />
+          </Suspense>
+        }
       />
 
       <PageContent className="space-y-6">

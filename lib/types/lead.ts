@@ -50,6 +50,27 @@ export type MqlQualification = {
   ruleSummary: string;
 };
 
+/** Extensible SQL criterion — currently MQL + No-Go; Sales Dev may add more. */
+export type SqlCriterionResult = {
+  key: string;
+  label: string;
+  detail: string;
+  met: boolean;
+};
+
+export type SqlEligibility = {
+  eligible: boolean;
+  mqlMet: boolean;
+  notNoGo: boolean;
+  noGoAccount: {
+    utility: string;
+    salesDirector: string;
+    reason: string;
+  } | null;
+  criteria: SqlCriterionResult[];
+  ruleSummary: string;
+};
+
 export type Lead = {
   id: string;
   name: string;
@@ -65,6 +86,10 @@ export type Lead = {
   intentScoreBonus?: number;
   intentScoreBreakdown?: IntentScoreBreakdownItem[];
   mqlQualification?: MqlQualification;
+  /** SQL = MQL rules + No-Go gate (extensible). */
+  sqlEligibility?: SqlEligibility;
+  /** True when company matches the Do Not Prospect / No-Go list. */
+  isNoGoAccount?: boolean;
   momentum: Momentum;
   lastActivity: string;
   source: string;

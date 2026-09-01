@@ -109,17 +109,24 @@ function buildTeamMember(name: string, leads: Lead[]): TeamMemberMetrics {
   };
 }
 
-export function getCsvPipelineMetrics(): PipelineMetrics {
-  const leads = getCsvLeads();
+export function getCsvPipelineMetrics(leadsInput?: Lead[]): PipelineMetrics {
+  const leads = leadsInput ?? getCsvLeads();
   const totalLeads = leads.length;
-  const mqls = countByStatus(leads, "mql");
-  const nurturing = countByStatus(leads, "nurturing");
+  const mqls = leads.filter(
+    (lead) =>
+      lead.status === "mql" ||
+      lead.status === "nurturing" ||
+      Boolean(lead.mqlQualification?.qualifies)
+  ).length;
+  const sqls = leads.filter(
+    (lead) => lead.status === "sql" || Boolean(lead.sqlEligibility?.eligible)
+  ).length;
   const closedWon = countByStatus(leads, "closed_won");
 
   return {
     totalLeads,
-    mqls: mqls + nurturing,
-    sqls: countByStatus(leads, "sql"),
+    mqls,
+    sqls,
     opportunities: countByStatus(leads, "opportunity"),
     closedWon,
     conversionRate:
@@ -137,8 +144,8 @@ export function getCsvFunnelStages(metrics: PipelineMetrics): FunnelStage[] {
   ];
 }
 
-export function getCsvOverviewKpis(): OverviewKpi[] {
-  const leads = getCsvLeads();
+export function getCsvOverviewKpis(leadsInput?: Lead[]): OverviewKpi[] {
+  const leads = leadsInput ?? getCsvLeads();
   const totalLeads = leads.length;
   const highIntent = countScoreAtLeast(leads, 85);
   const eventAttendees = leads.filter((lead) => (lead.webinarAttendance ?? 0) > 0).length;
@@ -175,8 +182,8 @@ export function getCsvOverviewKpis(): OverviewKpi[] {
   ];
 }
 
-export function getCsvPipelineStages(): PipelineStageMetric[] {
-  const metrics = getCsvPipelineMetrics();
+export function getCsvPipelineStages(leadsInput?: Lead[]): PipelineStageMetric[] {
+  const metrics = getCsvPipelineMetrics(leadsInput);
 
   // Match the Pipeline page funnel stages, shown horizontally with % conversion.
   const stages = [
@@ -194,12 +201,12 @@ export function getCsvPipelineStages(): PipelineStageMetric[] {
   }));
 }
 
-export function getCsvPipelineValue(): {
+export function getCsvPipelineValue(leadsInput?: Lead[]): {
   amount: string;
   label: string;
   trend: string;
 } {
-  const leads = getCsvLeads();
+  const leads = leadsInput ?? getCsvLeads();
   const platinum = countScoreAtLeast(leads, 90);
 
   return {
@@ -229,8 +236,8 @@ export function getCsvTopCampaigns(): TopCampaign[] {
     }));
 }
 
-export function getCsvIntelligencePulse(): IntelligenceInsight[] {
-  const leads = getCsvLeads();
+export function getCsvIntelligencePulse(leadsInput?: Lead[]): IntelligenceInsight[] {
+  const leads = leadsInput ?? getCsvLeads();
   const byCompany = new Map<string, Lead[]>();
 
   for (const lead of leads) {

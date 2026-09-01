@@ -5,6 +5,7 @@ import { AiSummary } from "@/components/leads/ai-summary";
 import { EngagementTimeline } from "@/components/leads/engagement-timeline";
 import { IntentScorePanel } from "@/components/leads/intent-score-panel";
 import { MqlQualificationPanel } from "@/components/leads/mql-qualification-panel";
+import { SqlEligibilityPanel } from "@/components/leads/sql-eligibility-panel";
 import { Header } from "@/components/layout/header";
 import { PageContent } from "@/components/layout/page-content";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +47,9 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
           <Badge className={STATUS_STYLES[lead.status]}>
             {STATUS_LABELS[lead.status]}
           </Badge>
+          {lead.isNoGoAccount && (
+            <Badge className="bg-rose-50 text-rose-700">No-Go Account</Badge>
+          )}
           <span
             className={`inline-flex items-center gap-1.5 text-sm font-medium ${MOMENTUM_STYLES[lead.momentum]}`}
           >
@@ -73,6 +77,10 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
 
         {lead.mqlQualification && (
           <MqlQualificationPanel qualification={lead.mqlQualification} />
+        )}
+
+        {lead.sqlEligibility && (
+          <SqlEligibilityPanel eligibility={lead.sqlEligibility} />
         )}
 
         {lead.intentScoreBreakdown && lead.intentScoreBreakdown.length > 0 && (

@@ -9,7 +9,8 @@ export type LeadFilterKey =
   | "high_intent"
   | "event_attendees"
   | "with_touchpoints"
-  | "at_risk";
+  | "at_risk"
+  | "no_go";
 
 export type LeadFilterDefinition = {
   key: LeadFilterKey;
@@ -29,13 +30,17 @@ export const LEAD_FILTERS: Record<LeadFilterKey, LeadFilterDefinition> = {
     key: "mql",
     title: "MQLs",
     description: "Marketing-qualified and nurturing leads.",
-    match: (lead) => lead.status === "mql" || lead.status === "nurturing",
+    match: (lead) =>
+      lead.status === "mql" ||
+      lead.status === "nurturing" ||
+      Boolean(lead.mqlQualification?.qualifies),
   },
   sql: {
     key: "sql",
     title: "SQLs",
-    description: "Sales-qualified leads ready for follow-up.",
-    match: (lead) => lead.status === "sql",
+    description: "Sales-qualified leads (MQL rules + clear of No-Go Accounts).",
+    match: (lead) =>
+      lead.status === "sql" || Boolean(lead.sqlEligibility?.eligible),
   },
   opportunity: {
     key: "opportunity",
@@ -73,6 +78,12 @@ export const LEAD_FILTERS: Record<LeadFilterKey, LeadFilterDefinition> = {
     title: "At-Risk Leads",
     description: "Leads that need follow-up based on momentum.",
     match: (lead) => lead.momentum === "at_risk",
+  },
+  no_go: {
+    key: "no_go",
+    title: "No-Go Accounts",
+    description: "Contacts at Do Not Prospect / No-Go utilities.",
+    match: (lead) => Boolean(lead.isNoGoAccount),
   },
 };
 

@@ -16,6 +16,10 @@ import {
   applyMqlStatus,
   evaluateMqlQualification,
 } from "@/lib/leads/mql-qualification";
+import {
+  applySqlStatus,
+  evaluateSqlEligibility,
+} from "@/lib/leads/sql-eligibility";
 
 const DEFAULT_CSV_FILENAME = "SDR Lead Tracker NEW - Lead Tracker.csv";
 const UPLOADED_CSV_FILENAME = "lead-tracker.csv";
@@ -341,6 +345,8 @@ function buildAiSummary(params: {
   accountHealth: string;
   intentBonus?: number;
   mqlQualified?: boolean;
+  sqlEligible?: boolean;
+  noGo?: boolean;
 }): string {
   const parts: string[] = [];
 
@@ -366,7 +372,11 @@ function buildAiSummary(params: {
   if ((params.intentBonus ?? 0) > 0) {
     parts.push(`+${params.intentBonus} high-intent points (last 14 days)`);
   }
-  if (params.mqlQualified) {
+  if (params.sqlEligible) {
+    parts.push("SQL eligible (MQL + clear of No-Go list)");
+  } else if (params.noGo && params.mqlQualified) {
+    parts.push("MQL met but blocked by No-Go account");
+  } else if (params.mqlQualified) {
     parts.push("meets Suggested MQL rule");
   }
 
@@ -487,7 +497,12 @@ function buildLead(email: string, rows: CsvRow[], intentAsOf: Date): Lead {
     events: intentEvents,
     asOf: intentAsOf,
   });
-  const status = applyMqlStatus(sourceStatus, mqlQualification);
+  const sqlEligibility = evaluateSqlEligibility({
+    company,
+    mqlQualification,
+  });
+  const statusAfterMql = applyMqlStatus(sourceStatus, mqlQualification);
+  const status = applySqlStatus(statusAfterMql, sqlEligibility);
 
   return {
     id: leadIdFromEmail(email),
@@ -502,6 +517,8 @@ function buildLead(email: string, rows: CsvRow[], intentAsOf: Date): Lead {
     intentScoreBonus: intent.bonus,
     intentScoreBreakdown: intent.breakdown,
     mqlQualification,
+    sqlEligibility,
+    isNoGoAccount: Boolean(sqlEligibility.noGoAccount),
     momentum: momentumFromSignals(accountHealth, lastActivity),
     lastActivity,
     source: campaignChannel(latest["Campaign Name"]),
@@ -517,6 +534,8 @@ function buildLead(email: string, rows: CsvRow[], intentAsOf: Date): Lead {
       accountHealth,
       intentBonus: intent.bonus,
       mqlQualified: mqlQualification.qualifies,
+      sqlEligible: sqlEligibility.eligible,
+      noGo: Boolean(sqlEligibility.noGoAccount),
     }),
     activities,
   };
